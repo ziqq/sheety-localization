@@ -1,0 +1,53 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "js:sheety-localization:generate",
+      "detail": "Generate localization files from Google Sheets",
+      "icon": {
+        "color": "terminal.ansiGreen",
+        "id": "file-code"
+      },
+      "type": "shell",
+      "command": [
+        "npm install -g generate-locales generate-locales",
+        "--credentials ./credentials.json", // Path to the Google Sheets credentials file
+        "--sheet 1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw", // Google Sheets ID
+        "--type=ts", // Set the output index file type to TypeScript
+        "--prefix=app", // Prefix for the generated files (e.g., app_en.ts, app_fr.ts)
+        // "--gen=src/locales", // Directory where the generated files will be placed. Defaults to src/locales
+        "--author='Anton Ustinoff <a.a.ustinoff@gmail.com>'", // Author of the generated files, set each generated file
+        "--comment='Generated from Google Sheets'", // Comment to be added to each generated file
+        "--context='From Google Sheets'" // Context to be added to each generated files
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/example"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "js:sheety-localization:generate:example",
+      "detail": "Generate localization files from Google Sheets",
+      "icon": {
+        "color": "terminal.ansiGreen",
+        "id": "file-code"
+      },
+      "type": "shell",
+      "command": [
+        "node scripts/generate-locales.js",
+        "--credentials ./credentials.json", // Path to the Google Sheets credentials file
+        "--sheet 1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw", // Google Sheets ID
+        "--type=ts", // Set the output index file type to TypeScript
+        "--prefix=app", // Prefix for the generated files (e.g., app_en.ts, app_fr.ts)
+        // "--gen=src/locales", // Directory where the generated files will be placed. Defaults to src/locales
+        "--author='Anton Ustinoff <a.a.ustinoff@gmail.com>'", // Author of the generated files, set each generated file
+        "--comment='Generated from Google Sheets'", // Comment to be added to each generated file
+        "--context='From Google Sheets'" // Context to be added to each generated files
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}/example"
+      },
+      "problemMatcher": []
+    },
+  ]
+}
