@@ -1,0 +1,33 @@
+{
+  "name": "solidjs-booking-app",
+  "description": "SolidJS + TypeScript Project Template with Best Practices, Router & SCSS",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "locales:gen": "node scripts/generate-locales.js --credentials ./credentials.json --sheet 1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw"
+  },
+  "dependencies": {
+    "@mbarzda/solid-i18next": "^1.4.1",
+    "@solidjs/router": "^0.15.3",
+    "@tailwindcss/vite": "^4.1.11",
+    "i18next": "^25.3.2",
+    "solid-js": "^1.9.7",
+    "tailwindcss": "^4.1.11"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.5",
+    "@types/node": "^24.1.0",
+    "autoprefixer": "^10.4.21",
+    "googleapis": "^154.1.0",
+    "postcss": "^8.5.6",
+    "postcss-import": "^16.1.1",
+    "sass": "^1.89.2",
+    "typescript": "^5.8.3",
+    "vite": "^7.0.6",
+    "vite-plugin-solid": "^2.11.8",
+    "yargs": "^18.0.0"
+  }
+}

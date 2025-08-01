@@ -1,0 +1,114 @@
+@use './_variables.scss' as *;
+
+// Default drawer width
+$drawer-width: 60px;
+
+// Layout styles for the application container
+.l-app-container {
+  min-height: 100vh;
+  max-height: 100vh;
+
+  &__drawer {
+    background-color: rgb(16, 25, 40);
+    width: $drawer-width;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  } // .l-app-container__drawer
+
+  &__content {
+    min-height: 100vh;
+    margin-left: $drawer-width;
+    padding: $offset-base;
+    background-color: #f9f9f9;
+  } // .l-app-container__content
+} // .l-app-container
+
+// Layout styles for the drawer component
+.l-drawer {
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    width: $drawer-width;
+    height: $drawer-width;
+
+    &--last {
+      margin-top: auto;
+    } // .l-drawer__item--last
+
+    svg {
+      z-index: 2;
+      fill: #fff;
+      width: $icon-size--sm;
+      height: $icon-size--sm;
+    } // .l-drawer svg
+
+    a {
+      position: relative;
+      width: $drawer-width - 10px;
+      height: $drawer-width - 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: $border-radius;
+
+      &:after {
+        content: '';
+        z-index: 1;
+        opacity: 0;
+        display: block;
+        position: absolute;
+        border-radius: $border-radius;
+        background-color: transparent;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transition: background-color, width, opacity, right 0.15s linear;
+      }
+
+      &:hover {
+        &:after {
+          opacity: 1;
+          background-color: #495569cc;
+        }
+        text-decoration: none;
+      } // .l-drawer a:hover
+    } // .l-drawer a
+  } // .l-drawer__item
+} // .l-drawer
+
+.l-container {
+  max-width: 650px;
+  padding: 0 16px;
+  margin: 0 auto;
+
+  &--column {
+    display: flex;
+    flex-direction: column;
+  }
+
+  &--full-height {
+    height: 100vh;
+    justify-content: center;
+  }
+}
+
+.l-task-item {
+  display: flex;
+  padding: $offset-base;
+  border-bottom: 1px solid #eaeaea;
+
+  &--completed {
+    text-decoration: line-through;
+    color: #999;
+  }
+
+  input[type='checkbox'] {
+    margin-right: $offset-base;
+  }
+}
