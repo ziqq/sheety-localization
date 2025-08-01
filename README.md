@@ -86,7 +86,6 @@ generate-locales \
 
 ### Option descriptions
 
-```
 - `--credentials`, `-c`: Path to service account JSON (required)
 - `--sheet`, `-s`: Google Spreadsheet ID (required)
 - `--output`, `-o`: Root folder for locales (`src/locales` by default)
@@ -98,7 +97,6 @@ generate-locales \
 - `--context`: Context/version for metadata
 - `--format`: Format index file (`false` by default)
 - `--help`, `-h`: Show help
-```
 
 ---
 
