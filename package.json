@@ -1,6 +1,6 @@
 {
   "name": "sheety-localization",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "CLI to generate locale JSON and index files from Google Sheets",
   "main": "scripts/generate-locales.js",
   "bin": {
@@ -17,6 +17,13 @@
     "scripts/",
     "package.json",
     "README.md"
+  ],
+  "keywords": [
+    "google-sheets",
+    "localization",
+    "locales",
+    "i18n"
+    "cli",
   ],
   "author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
   "license": "MIT"
