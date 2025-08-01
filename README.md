@@ -155,18 +155,17 @@ Add to `.vscode/tasks.json`:
       "label": "Generate Localization",
       "type": "shell",
       "command": [
-        "node scripts/generate-locales.js",
+        "generate-locales",
         "--credentials=credentials.json",
-        "--sheet=",
+        "--sheet=<SPREADSHEET_ID>",
         "--output=src/locales",
         "--prefix=app",
         "--type=ts",
-        "--author='Anton Ustinoff <a.a.ustinoff@gmail.com>'",
-        "--comment='Generated from Google Sheets'",
-        "--context='From Google Sheets'"
+        "--author="Your Name <email>"",
+        "--comment="Generated from Google Sheets"",
       ],
       "options": {
-        "cwd": "${workspaceFolder}/example"
+        "cwd": "${workspaceFolder}"
       }
     }
   ]
@@ -193,14 +192,13 @@ A command-line tool to automatically generate locale JSON files and a barrel fil
 
 ## Features
 
-• Fetches data from Google Sheets via a Service Account.
-• Generates JSON files with metadata:
-• @@locale, @@author, @@last_modified, @@comment, @@context.
-• Supports global fields (--meta).
-• Creates a convenient index barrel:
-• JavaScript: index.js
-• TypeScript: index.ts with types.
-• Lazy-loading of translations using import().
+- Fetches data from Google Sheets via a Service Account.
+- Generates JSON files with metadata: `@@locale, @@author, @@last_modified, @@comment, @@context`.
+- Supports global fields (--meta).
+- Creates a convenient index barrel:
+- JavaScript: index.js
+- TypeScript: index.ts with types.
+- Lazy-loading of translations using import().
 
 ## Installation
 
