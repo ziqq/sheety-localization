@@ -4,194 +4,150 @@
 [![Node.js](https://img.shields.io/badge/Node.js-%23339933.svg?style=flat&logo=node.js&logoColor=white)](https://nodejs.org)
 [![NPM](https://img.shields.io/npm/v/generate-locales.svg)](https://www.npmjs.com/package/generate-locales)
 
-**Sheety Localization** — CLI-утилита для генерации JSON-файлов локализации и barrel-файлов (`index.js`/`index.ts`) из Google Sheets. Использует Google Sheets API и сервисный аккаунт для получения данных.
+**Sheety Localization** - CLI utility for generating JSON localization files and barrel files (`index.js`/`index.ts`) from Google Sheets. Uses Google Sheets API and service account to get data.
 
 ---
 
-## Возможности
+## Features
 
-- Получение данных из Google Sheets через сервисный аккаунт.
-- Генерация JSON-файлов для каждой локали (например, `app_en.json`, `app_ru.json`).
-- Создание barrel-файла (`index.js` или `index.ts`) для удобного импорта локализаций.
-- Вставка метаданных: `@@locale`, `@@author`, `@@last_modified`, `@@comment`, `@@context`.
-- Гибкая настройка структуры директорий и префиксов через CLI-опции.
-- Поддержка глобальных полей (`--meta`).
-- Ленивая загрузка переводов через `import()`.
-- Автоматическое форматирование TypeScript-файлов (опционально).
+- Get data from Google Sheets via service account.
+- Generate JSON files for each locale (e.g. `app_en.json`, `app_ru.json`).
+- Create barrel file (`index.js` or `index.ts`) for easy import of locales.
+- Insert metadata: `@@locale`, `@@author`, `@@last_modified`, `@@comment`, `@@context`.
+- Flexible configuration of directory structure and prefixes via CLI options.
+- Support for global fields (`--meta`).
+- Lazy loading of translations via `import()`.
+- Automatic formatting of TypeScript files (optional).
 
 ---
 
 ## TL;DR
 
-1. Создайте Google Sheet с колонками: `key | description | en | ru | ...`.
-2. Получите сервисный аккаунт Google Cloud, включите Sheets API, поделитесь таблицей.
-3. Установите зависимости:
-
-   ```bash
-   npm install
-   ```
-
-4. Запустите генератор:
-
-   ```bash
-   node scripts/generate-locales.js \
-     --credentials=credentials.json \
-     --sheet=<SPREADSHEET_ID> \
-     --output=src/locales \
-     --prefix=app \
-     --type=ts \
-     --author="Ваше Имя <email>" \
-     --comment="Generated from Google Sheets"
-   ```
-
-5. Импортируйте barrel-файл (`src/locales/index.ts`) в проект.
-
----
-
-## Требования
-
-- Node.js >= 18
-- Google Service Account с доступом к Google Sheets API
-- Google Sheet с первой строкой:
-  `key | description | en | ru | ... (другие локали)`
-
----
-
-## Установка
+1. Create a Google Sheet with columns: `key | description | en | ru | ...`.
+2. Get a Google Cloud service account, enable Sheets API, share the spreadsheet.
+3. Install dependencies:
 
 ```bash
-npm install
+npm install -g generate-locales
 ```
 
-> **Совет:** Не публикуйте `credentials.json` в публичных репозиториях.
-
----
-
-## Использование
-
-Для справки по опциям:
+4. Run the generator:
 
 ```bash
-node scripts/generate-locales.js --help
-```
-
-### Пример команды
-
-```bash
-node scripts/generate-locales.js \
+generate-locales \
   --credentials=credentials.json \
   --sheet=<SPREADSHEET_ID> \
   --output=src/locales \
   --prefix=app \
   --type=ts \
-  --author="Ваше Имя <email>" \
+  --author="Your Name <email>" \
   --comment="Generated from Google Sheets"
 ```
 
-#### Описание опций
+5. Import the barrel file (`src/locales/index.ts`) into the project.
 
-- `--credentials`, `-c`: Путь к JSON сервисного аккаунта (обязательно)
-- `--sheet`, `-s`: ID Google Spreadsheet (обязательно)
-- `--output`, `-o`: Корневая папка для локалей (`src/locales` по умолчанию)
-- `--prefix`, `-p`: Префикс для файлов (`app`)
-- `--meta`, `-m`: JSON-строка с глобальными полями (`{}`)
-- `--type`, `-t`: Тип barrel-файла (`js` или `ts`)
-- `--author`: Автор для метаданных
-- `--comment`: Комментарий для метаданных
-- `--context`: Контекст/версия для метаданных
-- `--format`: Форматировать index-файл (`false` по умолчанию)
-- `--help`, `-h`: Показать справку
+6. Optionally automate translation formulas, conditional formatting, VS Code tasks, and CI pipelines.
 
 ---
 
-## Интеграция
+## Requirements
 
-1. **Подготовьте Google Sheet**
-
-   - Первая строка: `key | description | en | ru | ...`
-   - Каждая строка — одна строка локализации.
-
-2. **Создайте сервисный аккаунт и поделитесь таблицей**
-
-   - В Google Cloud Console создайте проект, включите Sheets API.
-   - Создайте сервисный аккаунт, скачайте `credentials.json`.
-   - Поделитесь таблицей с email сервисного аккаунта.
-
-3. **Запустите генератор**
-
-   - В терминале:
-
-     ```bash
-     node scripts/generate-locales.js \
-       --credentials=credentials.json \
-       --sheet=<SPREADSHEET_ID> \
-       --output=src/locales \
-       --prefix=app \
-       --type=ts
-     ```
-
-   - Будут созданы:
-     - `src/locales/app/app_en.json`, `src/locales/app/app_ru.json`, ...
-     - `src/locales/index.ts` (или `index.js`)
+- Node.js >= 18
+- Google Service Account with access to Google Sheets API
+- Google Sheet with first line:
+  `key | description | en | ru | ... (other locales)`
 
 ---
 
-## Пример структуры
+## Installation
 
-```
-example/
-  credentials.json
-  src/
-    locales/
-      app/
-        app_en.json
-        app_ru.json
-      errors/
-        errors_en.json
-        errors_ru.json
-      index.ts
+```bash
+npm install -g generate-locales
 ```
 
-- **`index.ts`**:
-
-  ```ts
-  // GENERATED FILE: index.ts
-  // Barrel file for all locales
-
-  export { default as app_en } from './app/app_en.json';
-  export { default as app_ru } from './app/app_ru.json';
-  // ... другие экспорты
-  ```
-
-- **`app_en.json`**:
-
-  ```json
-  {
-    "@@locale": "en",
-    "@@author": "Ваше Имя <email>",
-    "@@last_modified": "2025-08-01T12:00:00Z",
-    "@@comment": "Generated from Google Sheets",
-    "@@context": "v1.0",
-    "title": "Doctorina",
-    "checkVersionUpdateNowButton": "Update Now"
-    // ... другие ключи
-  }
-  ```
+> **Tip:** Do not publish `credentials.json` in public repositories.
 
 ---
 
-## Советы
+## Usage
 
-- Храните JSON-файлы локализации в git для аудита.
-- Не публикуйте `credentials.json` — используйте секреты CI.
-- Используйте опции `--author`, `--comment`, `--context` для метаданных.
-- Для добавления новых локалей — обновите таблицу и перегенерируйте файлы.
+### Command example
+
+```bash
+generate-locales \
+  --credentials=credentials.json \
+  --sheet=<SPREADSHEET_ID> \
+  --output=src/locales \
+  --prefix=app \
+  --type=ts \
+  --author="Your Name <email>" \
+  --comment="Generated from Google Sheets"
+```
+
+### Option descriptions
+
+```
+- `--credentials`, `-c`: Path to service account JSON (required)
+- `--sheet`, `-s`: Google Spreadsheet ID (required)
+- `--output`, `-o`: Root folder for locales (`src/locales` by default)
+- `--prefix`, `-p`: Prefix for files (`app`)
+- `--meta`, `-m`: JSON string with global fields (`{}`)
+- `--type`, `-t`: Type of barrel file (`js` or `ts`)
+- `--author`: Author for metadata
+- `--comment`: Comment for metadata
+- `--context`: Context/version for metadata
+- `--format`: Format index file (`false` by default)
+- `--help`, `-h`: Show help
+```
 
 ---
 
-## Пример задачи VS Code
+## Integration
 
-Добавьте в `.vscode/tasks.json`:
+1. **Prepare Google Sheet**
+
+- First line: `key | description | en | ru | ...`
+- Each line is one localization line.
+
+2. **Create a service account and share the spreadsheet**
+
+- In Google Cloud Console, create a project, enable Sheets API.
+- Create a service account, download `credentials.json`.
+- Share the spreadsheet with the service account email.
+
+3. **Run the generator**
+
+- In the terminal:
+
+```bash
+generate-locales \
+  --credentials=credentials.json \
+  --sheet=<SPREADSHEET_ID> \
+  --output=src/locales \
+  --prefix=app \
+  --type=ts \
+  --author="Your Name <email>" \
+  --comment="Generated from Google Sheets"
+```
+
+- Will generate:
+- `src/locales/app/app_en.json`, `src/locales/app/app_ru.json`, ...
+- `src/locales/index.ts` (or `index.js`)
+
+---
+
+## Tips
+
+- Store localization JSON files in git for auditing.
+- Don't publish `credentials.json` — use CI secrets.
+- Use `--author`, `--comment`, `--context` options for metadata.
+- To add new locales, update the table and regenerate the files.
+
+---
+
+## VS Code task example
+
+Add to `.vscode/tasks.json`:
 
 ```json
 {
@@ -203,7 +159,7 @@ example/
       "command": [
         "node scripts/generate-locales.js",
         "--credentials=credentials.json",
-        "--sheet=1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw",
+        "--sheet=",
         "--output=src/locales",
         "--prefix=app",
         "--type=ts",
@@ -221,9 +177,9 @@ example/
 
 ---
 
-## Пример: Автоматический перевод Google Sheets
+## Example: Google Automatic Translation Sheets
 
-В ячейке для русского (`E2`):
+In a cell for Russian (`E2`):
 
 ```plaintext
 =IF(ISBLANK(D2), "", GOOGLETRANSLATE(D2, "en", "ru"))
@@ -231,17 +187,7 @@ example/
 
 ---
 
-## Пример: Условное форматирование
-
-1. **Серый фон для машинного перевода**
-   Формула: `=ISFORMULA(E2)`
-
-2. **Красный фон для пустых ячеек**
-   Формула: `=E2==""`
-
----
-
-**Быстро и удобно генерируйте локализации из Google Sheets!**
+**Generate localizations from Google Sheets quickly and easily!**
 
 ## Description
 
@@ -262,8 +208,10 @@ A command-line tool to automatically generate locale JSON files and a barrel fil
 
 1. Clone the repository:
 
+````bash
 git clone <your-repo-url>
 cd <your-folder>
+``` bash
 
 2. Install dependencies:
 
@@ -271,9 +219,9 @@ npm install
 
 3. Make the script executable:
 
+``` bash
 chmod +x scripts/generate-locales.js
-
-⸻
+````
 
 ## CLI Options
 
@@ -282,7 +230,7 @@ generate-locales [options]
 ### Flag Description Default
 
 -c, --credentials Path to the Google Service Account JSON file — (required)
--s, --sheet Google Spreadsheet ID — (required)
+-s, --sheet Google Spreadsheet ID - (required)
 -o, --output Root folder for output locales src/locales
 -p, --prefix Prefix for filenames (${prefix}_${locale}.json) (empty)
 -m, --meta JSON string of additional global fields {}
@@ -299,29 +247,33 @@ generate-locales [options]
 2. Share your Google Sheet with the Service Account email.
 3. Run locale generation:
 
-generate-locales \
- --credentials=credentials.json \
- --sheet=sheet_id \
- --output=src/locales \
- --prefix=app \
- --type=ts \
- --author="Author Name <example@gmail.com>" \
- --comment="Generated from Google Sheets"
+```bash
+generate-locales\
+--credentials=credentials.json \
+--sheet=sheet_id \
+--output=src/locales \
+--prefix=app\
+--type=ts\
+--author="Author Name <example@gmail.com>" \
+--comment="Generated from Google Sheets"
+```
 
-4. Verify:
-   • Folders: src/locales/<bucket>/<prefix>\_<locale>.json
-   • File: src/locales/index.ts
+4.Verify:
+• Folders: src/locales/<bucket>/<prefix>\_<locale>.json
+• File: src/locales/index.ts
 
 ## Example Output Structure
 
+```
 src/locales/
-├─ app/
+├─app/
 │ ├─ app_en.json
 │ └─ app_ru.json
 ├─ errors/
 │ ├─ errors_en.json
-│ └─ errors_ru.json
+│ └─ errors_en.json
 └─ index.ts # or index.js
+```
 
 ## Tips
 
@@ -331,20 +283,24 @@ src/locales/
 
 ## Publishing to npm (optional)
 
-1. Add to package.json:
+1.Add to package.json:
 
+```json
 "bin": { "generate-locales": "scripts/generate-locales.js" }
+```
 
-    2.	Make the script executable and publish:
+2. Make the script executable and publish:
 
+```bash
 chmod +x scripts/generate-locales.js
 npm login
 npm publish
+```
 
-    3.	Then users can install globally:
+3. Then users can install globally:
 
+```bash
 npm install -g generate-locales
-
-⸻
+```
 
 Generate locales quickly and reliably!

@@ -28,23 +28,25 @@
 3. Install dependencies:
 
 ```bash
-npm install
+npm install -g generate-locales
 ```
 
 4. Run the generator:
 
 ```bash
-node scripts/generate-locales.js \
---credentials=credentials.json \
---sheet=<SPREADSHEET_ID> \
---output=src/locales \
---prefix=app \
---type=ts \
---author="Your Name <email>" \
---comment="Generated from Google Sheets"
+generate-locales \
+  --credentials=credentials.json \
+  --sheet=<SPREADSHEET_ID> \
+  --output=src/locales \
+  --prefix=app \
+  --type=ts \
+  --author="Your Name <email>" \
+  --comment="Generated from Google Sheets"
 ```
 
 5. Import the barrel file (`src/locales/index.ts`) into the project.
+
+6. Optionally automate translation formulas, conditional formatting, VS Code tasks, and CI pipelines.
 
 ---
 
@@ -60,7 +62,7 @@ node scripts/generate-locales.js \
 ## Installation
 
 ```bash
-npm install
+npm install -g generate-locales
 ```
 
 > **Tip:** Do not publish `credentials.json` in public repositories.
@@ -69,27 +71,22 @@ npm install
 
 ## Usage
 
-For help on options:
-
-```bash
-node scripts/generate-locales.js --help
-```
-
 ### Command example
 
 ```bash
-node scripts/generate-locales.js \
---credentials=credentials.json \
---sheet=<SPREADSHEET_ID> \
---output=src/locales \
---prefix=app \
---type=ts \
---author="Your Name <email>" \
---comment="Generated from Google Sheets"
+generate-locales \
+  --credentials=credentials.json \
+  --sheet=<SPREADSHEET_ID> \
+  --output=src/locales \
+  --prefix=app \
+  --type=ts \
+  --author="Your Name <email>" \
+  --comment="Generated from Google Sheets"
 ```
 
-#### Option descriptions
+### Option descriptions
 
+```
 - `--credentials`, `-c`: Path to service account JSON (required)
 - `--sheet`, `-s`: Google Spreadsheet ID (required)
 - `--output`, `-o`: Root folder for locales (`src/locales` by default)
@@ -101,6 +98,7 @@ node scripts/generate-locales.js \
 - `--context`: Context/version for metadata
 - `--format`: Format index file (`false` by default)
 - `--help`, `-h`: Show help
+```
 
 ---
 
@@ -122,61 +120,19 @@ node scripts/generate-locales.js \
 - In the terminal:
 
 ```bash
-node scripts/generate-locales.js \
---credentials=credentials.json \
---sheet=<SPREADSHEET_ID> \
---output=src/locales \
---prefix=app \
---type=ts
+generate-locales \
+  --credentials=credentials.json \
+  --sheet=<SPREADSHEET_ID> \
+  --output=src/locales \
+  --prefix=app \
+  --type=ts \
+  --author="Your Name <email>" \
+  --comment="Generated from Google Sheets"
 ```
 
 - Will generate:
 - `src/locales/app/app_en.json`, `src/locales/app/app_ru.json`, ...
 - `src/locales/index.ts` (or `index.js`)
-
----
-
-## Example structure
-
-```
-  example/
-  credentials.json
-  src/
-  locales/
-  app/
-  app_en.json
-  app_ru.json
-  errors/
-  errors_en.json
-  errors_ru.json
-  index.ts
-```
-
-- **`index.ts`**:
-
-```ts
-// GENERATED FILE: index.ts
-// Barrel file for all locales
-
-export { default as app_en } from './app/app_en.json';
-export { default as app_ru } from './app/app_ru.json';
-// ... other exports
-```
-
-- **`app_en.json`**:
-
-```json
-{
-  "@@locale": "en",
-  "@@author": "Your Name <email>",
-  "@@last_modified": "2025-08-01T12:00:00Z",
-  "@@comment": "Generated from Google Sheets",
-  "@@context": "v1.0",
-  "title": "Title",
-  "checkVersionUpdateNowButton": "Update Now"
-  // ... other keys
-}
-```
 
 ---
 
@@ -231,18 +187,6 @@ In a cell for Russian (`E2`):
 
 ---
 
-## Example: Conditional formatting
-
-1. **Gray background for machine translation**
-
-Formula: `=ISFORMULA(E2)`
-
-2. **Red background for empty cells**
-
-Formula: `=E2==""`
-
----
-
 **Generate localizations from Google Sheets quickly and easily!**
 
 ## Description
@@ -264,8 +208,10 @@ A command-line tool to automatically generate locale JSON files and a barrel fil
 
 1. Clone the repository:
 
+````bash
 git clone <your-repo-url>
 cd <your-folder>
+``` bash
 
 2. Install dependencies:
 
@@ -273,9 +219,9 @@ npm install
 
 3. Make the script executable:
 
+``` bash
 chmod +x scripts/generate-locales.js
-
-⸻
+````
 
 ## CLI Options
 
@@ -301,6 +247,7 @@ generate-locales [options]
 2. Share your Google Sheet with the Service Account email.
 3. Run locale generation:
 
+```bash
 generate-locales\
 --credentials=credentials.json \
 --sheet=sheet_id \
@@ -309,6 +256,7 @@ generate-locales\
 --type=ts\
 --author="Author Name <example@gmail.com>" \
 --comment="Generated from Google Sheets"
+```
 
 4.Verify:
 • Folders: src/locales/<bucket>/<prefix>\_<locale>.json
@@ -316,6 +264,7 @@ generate-locales\
 
 ## Example Output Structure
 
+```
 src/locales/
 ├─app/
 │ ├─ app_en.json
@@ -324,8 +273,9 @@ src/locales/
 │ ├─ errors_en.json
 │ └─ errors_en.json
 └─ index.ts # or index.js
+```
 
-##Tips
+## Tips
 
 • Keep credentials.json out of public repos.
 • Version-control generated JSON files for auditing.
@@ -335,18 +285,22 @@ src/locales/
 
 1.Add to package.json:
 
+```json
 "bin": { "generate-locales": "scripts/generate-locales.js" }
+```
 
 2. Make the script executable and publish:
 
+```bash
 chmod +x scripts/generate-locales.js
 npm login
 npm publish
+```
 
 3. Then users can install globally:
 
+```bash
 npm install -g generate-locales
-
-⸻
+```
 
 Generate locales quickly and reliably!
