@@ -34,3 +34,5 @@ coverage/
 # Misc
 *.bak
 *.tmp
+
+credentials.json
