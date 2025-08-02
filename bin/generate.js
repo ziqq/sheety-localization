@@ -5,13 +5,13 @@
  *
  * Generate locale JSON files from Google Sheets
  * Usage:
- *       npm script gin/generate.js --credentials ./credentials.json, // Path to the Google Sheets credentials file
- *        --sheet <YOUR_GOOGLE_SHEET_ID>,
- *        --type=[ts|js]
- *        --prefix=app
- *        --output=src/locales
- *        --author='Author Name <email>'
- *        --comment='Generated from Google Sheets'
+ *       npm script gin/generate.js --credentials ./credentials.json \
+ *        --sheet <YOUR_GOOGLE_SHEET_ID> \
+ *        --type=[ts|js] \
+ *        --prefix=app \
+ *        --output=src/locales \
+ *        --author='Author Name <email>' \
+ *        --comment='Generated from Google Sheets' \
  *        --context='From Google Sheets'
  */
 
@@ -118,85 +118,156 @@ async function generateLocalizationTable(sheets) {
   return buckets;
 }
 
-// Write JSON files with metadata header
+/**
+ * Write JSON localization files, updating the @@last_modified field
+ * only when the actual content (minus that timestamp) has changed.
+ */
 async function writeJsonFiles(buckets, outputDir, prefix, globalMeta, author, commentText, contextText) {
-  const timestamp = new Date().toISOString();
   for (const [bucket, locs] of Object.entries(buckets)) {
     const bucketDir = path.join(outputDir, bucket);
     fs.mkdirSync(bucketDir, { recursive: true });
+
     for (const [locale, messages] of Object.entries(locs)) {
       const fileName = `${prefix ? prefix + '_' : ''}${locale}.json`;
       const filePath = path.join(bucketDir, fileName);
-      const content = {
+
+      // Build the object without the timestamp
+      const base = {
         '@@locale': locale,
         '@@author': author || '',
-        '@@last_modified': timestamp,
         '@@comment': commentText || '',
         '@@context': contextText || '',
         ...globalMeta,
         ...messages,
       };
-      const jsonBody = JSON.stringify(content, null, 2);
-      const fileText = jsonBody;
-      fs.writeFileSync(filePath, fileText, 'utf8');
+
+      const newBody = JSON.stringify(base, null, 2);
+
+      // If file exists, compare its content minus the old timestamp
+      if (fs.existsSync(filePath)) {
+        try {
+          const oldText = fs.readFileSync(filePath, 'utf8');
+          const oldObj = JSON.parse(oldText);
+          delete oldObj['@@last_modified'];
+          const oldBody = JSON.stringify(oldObj, null, 2);
+
+          // If nothing but the timestamp changed, skip rewriting
+          if (oldBody === newBody) {
+            log(`No new JSON files generated for ${filePath}, ` + 'nothing to do, exiting...');
+            continue;
+          }
+        } catch {
+          // If parsing fails, fall back to rewriting
+        }
+      }
+
+      // On new or changed content, add fresh timestamp and write
+      base['@@last_modified'] = new Date().toISOString();
+      const finalText = JSON.stringify(base, null, 2) + '\n';
+      fs.writeFileSync(filePath, finalText, 'utf8');
       log(`Written ${filePath}`);
     }
   }
 }
 
-// Generate JS index
-async function generateIndexJs(outputDir, prefix) {
-  const indexPath = path.join(outputDir, 'index.js');
-  const lines = [];
-  lines.push('// This file is generated, do not edit it manually!');
-  lines.push('export default {');
+// Generate index.ts file
+async function generateIndexTs(outputDir, prefix) {
+  const indexPath = path.join(outputDir, 'index.ts');
   const buckets = fs
     .readdirSync(outputDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name);
+  const localesVar = 'locales';
+
+  const lines = [
+    '// This file is generated, do not edit it manually!',
+    '',
+    `export const ${localesVar}: Record<string, Record<string, () => Promise<{ default: any }>>> = {`,
+  ];
+
+  // raw object
   for (const bucket of buckets) {
     lines.push(`  "${bucket}": {`);
     const files = fs.readdirSync(path.join(outputDir, bucket)).filter((f) => f.endsWith('.json'));
     for (const f of files) {
-      const locale = f.replace(/\.json$/, '').replace(new RegExp(`^${prefix}_`), '');
+      const locale = f.replace(new RegExp(`^${prefix}_?`), '').replace(/\.json$/, '');
       lines.push(`    "${locale}": () => import('./${bucket}/${f}'),`);
     }
     lines.push('  },');
   }
-  lines.push('};');
-  fs.writeFileSync(indexPath, lines.join('\n'), 'utf8');
-  log(`Written ${indexPath}`);
+  lines.push('};', '');
+
+  // loadLocales fn
+  lines.push('/**', ' * Load all locales at once.', ' * @returns Promise<Record<string, Record<string, any>>>', ' */');
+  lines.push('export async function loadLocales(): Promise<Record<string, Record<string, any>>> {');
+  lines.push(`  const result: Record<string, Record<string, any>> = {};`);
+  lines.push(`  const buckets = Object.keys(${localesVar}) as string[];`);
+  lines.push(`  const localeKeys = Object.keys(${localesVar}[buckets[0]]) as string[];`);
+  lines.push('');
+  lines.push('  for (const locale of localeKeys) {');
+  lines.push('    const entries = await Promise.all(');
+  lines.push(
+    `      buckets.map(bucket => ${localesVar}[bucket][locale]().then(m => [bucket, (m as any).default] as const))`
+  );
+  lines.push('    );');
+  lines.push('    result[locale] = Object.fromEntries(entries);');
+  lines.push('  }');
+  lines.push('');
+  lines.push('  return result;');
+  lines.push('}');
+
+  await fs.promises.writeFile(indexPath, lines.join('\n'), 'utf8');
+  log(`Written TypeScript locale index at ${indexPath}`);
 }
 
-// Generate TS index
-async function generateIndexTs(outputDir, prefix) {
-  const indexPath = path.join(outputDir, 'index.ts');
-  const lines = [];
-  lines.push('// This file is generated, do not edit it manually!');
-  lines.push('');
-  lines.push('const locales: Record<string, Record<string, () => Promise<{ default: Record<string, any> }>>> = {');
+// Generate index.js file
+async function generateIndexJs(outputDir, prefix) {
+  const indexPath = path.join(outputDir, 'index.js');
   const buckets = fs
     .readdirSync(outputDir, { withFileTypes: true })
     .filter((d) => d.isDirectory())
     .map((d) => d.name);
+  const localesVar = 'locales';
+
+  const lines = ['// This file is generated, do not edit it manually!', '', `export const ${localesVar} = {`];
   for (const bucket of buckets) {
-    lines.push(`  ${JSON.stringify(bucket)}: {`);
+    lines.push(`  "${bucket}": {`);
     const files = fs.readdirSync(path.join(outputDir, bucket)).filter((f) => f.endsWith('.json'));
     for (const f of files) {
-      const locale = f.replace(/\.json$/, '').replace(new RegExp(`^${prefix}_`), '');
-      lines.push(`    ${JSON.stringify(locale)}: () => import('./${bucket}/${f}'),`);
+      const locale = f.replace(new RegExp(`^${prefix}_?`), '').replace(/\.json$/, '');
+      lines.push(`    "${locale}": () => import('./${bucket}/${f}'),`);
     }
     lines.push('  },');
   }
-  lines.push('};');
+  lines.push('};', '');
+
+  lines.push('/**', ' * Load all locales at once.', ' * @returns Promise<Record<string, Record<string, any>>>', ' */');
+  lines.push('export async function loadLocales() {');
+  lines.push('  const result = {};');
+  lines.push(`  const buckets = Object.keys(${localesVar});`);
+  lines.push(`  const localeKeys = Object.keys(${localesVar}[buckets[0]]);`);
   lines.push('');
-  lines.push('export default locales;');
-  await fs.promises.writeFile(indexPath, lines.join('\n'), 'utf8');
-  log(`Written ${indexPath}`);
+  lines.push('  for (const locale of localeKeys) {');
+  lines.push('    const entries = await Promise.all(');
+  lines.push(`      buckets.map(bucket => ${localesVar}[bucket][locale]().then(m => [bucket, m.default]))`);
+  lines.push('    );');
+  lines.push('    result[locale] = Object.fromEntries(entries);');
+  lines.push('  }');
+  lines.push('');
+  lines.push('  return result;');
+  lines.push('}');
+
+  fs.writeFileSync(indexPath, lines.join('\n'), 'utf8');
+  log(`Written JavaScript locale index at ${indexPath}`);
 }
 
 // Main
 async function main() {
+  // if (yargs(hideBin(process.argv)).option('help', { alias: 'h', type: 'boolean', default: false }).argv.help == true) {
+  //   process.exit(0);
+  // }
+
+  log('Reading command line arguments...');
   const argv = yargs(hideBin(process.argv))
     .option('credentials', { alias: 'c', type: 'string', demandOption: true })
     .option('sheet', { alias: 's', type: 'string', demandOption: true })
@@ -210,28 +281,58 @@ async function main() {
     .help().argv;
 
   const { credentials, sheet, output, prefix, meta, type, author, comment, context } = argv;
+
+  // Validate arguments
+  if (credentials == null || sheet == null || type == null) {
+    err('Missing required arguments. Use --help for usage information.');
+    process.exit(1);
+  }
+
   let globalMeta = {};
   try {
     globalMeta = JSON.parse(meta);
   } catch {
     err('Invalid --meta JSON');
   }
+
+  log(`Credentials path: ${path.resolve(credentials)}`);
   if (!fs.existsSync(credentials)) {
     err(`Missing credentials file at ${credentials}`);
     process.exit(1);
   }
-  const keyFile = JSON.parse(fs.readFileSync(credentials, 'utf8'));
-  const auth = await new google.auth.GoogleAuth({
-    credentials: keyFile,
-    scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
-  }).getClient();
 
-  log('Fetching spreadsheet...');
+  log('Extracting credentials from file...');
+  let keyFile;
+  try {
+    keyFile = JSON.parse(fs.readFileSync(credentials, 'utf8'));
+  } catch (e) {
+    err(`Error reading credentials file: ${e}`);
+    process.exit(1);
+  }
+
+  log('Creating Google Sheets API client...');
+  // const auth = await new google.auth.GoogleAuth({
+  //   credentials: keyFile,
+  //   scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+  // }).getClient();
+  let auth;
+  try {
+    auth = await new google.auth.GoogleAuth({
+      credentials: keyFile,
+      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+    }).getClient();
+  } catch (e) {
+    err(`Error creating Google Sheets API client: ${e}`);
+    process.exit(1);
+  }
+
+  log('Fetching spreadsheet data...');
   const sheets = await fetchSpreadsheet(auth, sheet);
   if (!sheets.length) {
     err('No sheets found');
     process.exit(1);
   }
+
   log('Building localization table...');
   const buckets = await generateLocalizationTable(sheets);
 
@@ -253,3 +354,17 @@ main().catch((e) => {
   err(e);
   process.exit(1);
 });
+
+/// Help message for the command line arguments
+const help = `
+Localization Generator
+
+Generate JSON files from Google Sheets.
+This script uses the Google Sheets API to fetch
+the localization table from a spreadsheet and generates JSON files for localization.
+You need to create a service account and download the credentials JSON file.
+You can find more information about how to create a service account here:
+https://cloud.google.com/docs/authentication/getting-started#creating_a_service_account
+
+Usage: npm run bin/generate.js [options]
+`;

@@ -98,6 +98,14 @@ sheety-localization \
 - `--format`: Format index file (`false` by default)
 - `--help`, `-h`: Show help
 
+### Intro your app
+
+```javascript
+import { loadLocales } from './locales/index.js';
+
+const locales = await loadLocales();
+```
+
 ---
 
 ## Integration
@@ -155,6 +163,7 @@ Add to `.vscode/tasks.json`:
       "label": "Generate Localization",
       "type": "shell",
       "command": [
+        "npm i -g sheety-localization"
         "sheety-localization",
         "--credentials=./credentials.json",
         "--sheet=<SPREADSHEET_ID>",

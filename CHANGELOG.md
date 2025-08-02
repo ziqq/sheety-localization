@@ -1,4 +1,7 @@
 ## 0.0.3
+- **ADDED**: Skip generation JSON localization files for not modified localization files from Google Sheets
+
+## 0.0.3
 - **CHANGED**: Pakage documentation
 
 ## 0.0.2
