@@ -2,6 +2,26 @@ name: 'Checkout'
 
 on:
   workflow_call:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    branches:
+      - 'main'
+      - 'feature/**'
+      - 'bugfix/**'
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/**.yaml'
+      - '.github/**.yml'
+      - 'bin/**.js'
+      - 'test/**.js'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   checkout:
@@ -14,6 +34,9 @@ jobs:
       pub-cache-name: pub
       threshold: 50
     timeout-minutes: 15
+    concurrency:
+      group: checkout-${{ github.workflow }}-${{ github.ref_name }}
+      cancel-in-progress: true
     steps:
       - name: 🚂 Get latest code
         id: checkout
