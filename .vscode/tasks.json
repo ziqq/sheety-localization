@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "js:sheety-localization:generate",
+      "label": "sheety-localization:generate:npm",
       "detail": "Generate localization files from Google Sheets",
       "icon": {
         "color": "terminal.ansiGreen",
@@ -15,7 +15,7 @@
         "--sheet 1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw", // Google Sheet ID
         "--type=ts", // Set the output index file type to TypeScript
         "--prefix=app", // Prefix for the generated files (e.g., app_en.ts, app_fr.ts)
-        // "--gen=src/locales", // Directory where the generated files will be placed. Defaults to src/locales
+        // "--output=src/locales", // Directory where the generated files will be placed. Defaults to src/locales
         "--author='Anton Ustinoff <a.a.ustinoff@gmail.com>'", // Author of the generated files, set each generated file
         "--comment='Generated from Google Sheets'", // Comment to be added to each generated file
         "--context='From Google Sheets'" // Context to be added to each generated files
@@ -26,7 +26,7 @@
       "problemMatcher": []
     },
     {
-      "label": "js:sheety-localization:generate:example",
+      "label": "sheety-localization:generate:bin",
       "detail": "Generate localization files from Google Sheets used local sheety-localization",
       "icon": {
         "color": "terminal.ansiGreen",
@@ -34,12 +34,12 @@
       },
       "type": "shell",
       "command": [
-        "node bin/generate.js",
+        "node ../bin/generate.js",
         "--credentials ./credentials.json", // Path to the Google Sheets credentials file
         "--sheet 1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw", // Google Sheets ID
         "--type=ts", // Set the output index file type to TypeScript
         "--prefix=app", // Prefix for the generated files (e.g., app_en.ts, app_fr.ts)
-        // "--gen=src/locales", // Directory where the generated files will be placed. Defaults to src/locales
+        // "--output=src/locales", // Directory where the generated files will be placed. Defaults to src/locales
         "--author='Anton Ustinoff <a.a.ustinoff@gmail.com>'", // Author of the generated files, set each generated file
         "--comment='Generated from Google Sheets'", // Comment to be added to each generated file
         "--context='From Google Sheets'" // Context to be added to each generated files
