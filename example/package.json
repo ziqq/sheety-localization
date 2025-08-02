@@ -1,13 +1,13 @@
 {
-  "name": "solidjs-booking-app",
-  "description": "SolidJS + TypeScript Project Template with Best Practices, Router & SCSS",
+  "name": "sheety-localization-example",
+  "description": "Example project using sheety-localization to generate localization files",
   "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "locales:gen": "node scripts/generate-locales.js --credentials ./credentials.json --sheet 1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw"
+    "locales:gen": "node scripts/generate.js --credentials ./credentials.json --sheet 1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw"
   },
   "dependencies": {
     "@mbarzda/solid-i18next": "^1.4.1",

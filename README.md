@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-%23339933.svg?style=flat&logo=node.js&logoColor=white)](https://nodejs.org)
-[![NPM](https://img.shields.io/npm/v/generate-locales.svg)](https://www.npmjs.com/package/generate-locales)
+[![NPM](https://img.shields.io/npm/v/sheety-localization.svg)](https://www.npmjs.com/package/sheety-localization)
 
 **Sheety Localization** - CLI utility for generating JSON localization files and barrel files (`index.js`/`index.ts`) from Google Sheets. Uses Google Sheets API and service account to get data.
 
@@ -28,13 +28,13 @@
 3. Install dependencies:
 
 ```bash
-npm install -g generate-locales
+npm install -g sheety-localization
 ```
 
 4. Run the generator:
 
 ```bash
-generate-locales \
+sheety-localization \
   --credentials=credentials.json \
   --sheet=<SPREADSHEET_ID> \
   --output=src/locales \
@@ -62,7 +62,7 @@ generate-locales \
 ## Installation
 
 ```bash
-npm install -g generate-locales
+npm install -g sheety-localization
 ```
 
 > **Tip:** Do not publish `credentials.json` in public repositories.
@@ -74,7 +74,7 @@ npm install -g generate-locales
 ### Command example
 
 ```bash
-generate-locales \
+sheety-localization \
   --credentials=credentials.json \
   --sheet=<SPREADSHEET_ID> \
   --output=src/locales \
@@ -118,7 +118,7 @@ generate-locales \
 - In the terminal:
 
 ```bash
-generate-locales \
+sheety-localization \
   --credentials=credentials.json \
   --sheet=<SPREADSHEET_ID> \
   --output=src/locales \
@@ -155,8 +155,8 @@ Add to `.vscode/tasks.json`:
       "label": "Generate Localization",
       "type": "shell",
       "command": [
-        "generate-locales",
-        "--credentials=credentials.json",
+        "sheety-localization",
+        "--credentials=./credentials.json",
         "--sheet=<SPREADSHEET_ID>",
         "--output=src/locales",
         "--prefix=app",

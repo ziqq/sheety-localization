@@ -10,9 +10,9 @@
       },
       "type": "shell",
       "command": [
-        "npm install -g generate-locales generate-locales",
-        "--credentials ./credentials.json", // Path to the Google Sheets credentials file
-        "--sheet 1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw", // Google Sheets ID
+        "npm install -g sheety-localization &&",
+        "sheety-localization --credentials ./credentials.json", // Path to the Google Sheets credentials file
+        "--sheet 1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw", // Google Sheet ID
         "--type=ts", // Set the output index file type to TypeScript
         "--prefix=app", // Prefix for the generated files (e.g., app_en.ts, app_fr.ts)
         // "--gen=src/locales", // Directory where the generated files will be placed. Defaults to src/locales
@@ -27,14 +27,14 @@
     },
     {
       "label": "js:sheety-localization:generate:example",
-      "detail": "Generate localization files from Google Sheets",
+      "detail": "Generate localization files from Google Sheets used local sheety-localization",
       "icon": {
         "color": "terminal.ansiGreen",
         "id": "file-code"
       },
       "type": "shell",
       "command": [
-        "node scripts/generate-locales.js",
+        "node bin/generate.js",
         "--credentials ./credentials.json", // Path to the Google Sheets credentials file
         "--sheet 1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw", // Google Sheets ID
         "--type=ts", // Set the output index file type to TypeScript

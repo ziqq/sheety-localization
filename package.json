@@ -2,9 +2,9 @@
   "name": "sheety-localization",
   "version": "0.0.2",
   "description": "CLI to generate locale JSON and index files from Google Sheets",
-  "main": "scripts/generate-locales.js",
+  "main": "bin/generate.js",
   "bin": {
-    "generate-locales": "scripts/generate-locales.js"
+    "sheety-localization": "bin/generate.js"
   },
   "scripts": {
     "test": "echo \"No tests yet\""
@@ -14,16 +14,19 @@
     "yargs": "^18.0.0"
   },
   "files": [
-    "scripts/",
-    "package.json",
-    "README.md"
+    "bin/",
+    "README.md",
+    "package.json"
   ],
   "keywords": [
     "google-sheets",
     "localization",
     "locales",
-    "i18n"
+    "i18next",
+    "i18n",
     "cli",
+    "generator",
+    "typescript"
   ],
   "author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
   "license": "MIT"
