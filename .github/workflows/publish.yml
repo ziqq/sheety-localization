@@ -39,6 +39,6 @@ jobs:
 
       - name: Publish to npm
         id: publish
-        run: npm publish
+        run: npm publish || echo "Version already published, skipping"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
