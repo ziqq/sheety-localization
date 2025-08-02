@@ -18,7 +18,7 @@
     "sheety-localization": "bin/generate.js"
   },
   "scripts": {
-    "deploy": "npm run publish",
+    "publish": "npm publish",
     "test": "echo \"No tests yet\""
   },
   "dependencies": {
