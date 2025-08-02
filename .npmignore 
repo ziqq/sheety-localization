@@ -1,6 +1,0 @@
-node_modules/
-example/
-tests/
-src/
-*.lock
-*-lock.json
