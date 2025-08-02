@@ -95,7 +95,6 @@ sheety-localization \
 - `--author`: Author for metadata
 - `--comment`: Comment for metadata
 - `--context`: Context/version for metadata
-- `--format`: Format index file (`false` by default)
 - `--help`, `-h`: Show help
 
 ### Intro your app
