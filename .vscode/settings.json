@@ -1,9 +1,11 @@
 {
-  "editor.formatOnSave": true,
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "files.associations": {
     "*.ts": "typescript",
     "*.tsx": "typescriptreact"
+  },
+  "[javascript]": {
+    "editor.formatOnSave": true,
   },
   "typescript.tsdk": "example/node_modules/typescript/lib",
   "explorer.fileNesting.enabled": true,
