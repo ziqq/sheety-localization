@@ -1,3 +1,6 @@
+## 0.0.5
+- **FIXED**: Parsing `meta`
+
 ## 0.0.4
 - **ADDED**: Skip generation JSON localization files for not modified localization files from Google Sheets
 

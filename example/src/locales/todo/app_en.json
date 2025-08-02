@@ -1,0 +1,16 @@
+{
+  "@@locale": "en",
+  "@@author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
+  "@@last_modified": "2025-08-02T20:08:04.892Z",
+  "@@comment": "Generated from Google Sheets",
+  "@@context": "From Google Sheets",
+  "title": "My tasks for today",
+  "subtitle": "You have {numberOfTasks} tasks for today!",
+  "@subtitle": {
+    "placeholders": {
+      "numberOfTasks": {
+        "type": "String"
+      }
+    }
+  }
+}

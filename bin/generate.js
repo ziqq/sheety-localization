@@ -97,14 +97,24 @@ async function generateLocalizationTable(sheets) {
         err(`Empty label at row ${r + 1}, skipping`);
         continue;
       }
+      // const key = sanitize(label);
+      // const metaRaw = row[2] || '';
+      // let _meta = {};
+      // if (typeof metaRaw === 'string' && metaRaw.startsWith('{') && metaRaw.endsWith('}')) {
+      //   try {
+      //     _meta = JSON.parse(metaRaw);
+      //   } catch {
+      //     err(`Invalid JSON meta at row ${r + 1}`);
+      //   }
+      // }
       const key = sanitize(label);
       const metaRaw = row[2] || '';
-      let _meta = {};
-      if (typeof metaRaw === 'string' && metaRaw.startsWith('{') && metaRaw.endsWith('}')) {
+      let _metaObj = {};
+      if (typeof metaRaw === 'string' && metaRaw.trim().startsWith('{') && metaRaw.trim().endsWith('}')) {
         try {
-          _meta = JSON.parse(metaRaw);
+          _metaObj = JSON.parse(metaRaw);
         } catch {
-          err(`Invalid JSON meta at row ${r + 1}`);
+          err(`Invalid JSON in meta at row ${r + 1}`);
         }
       }
       for (let c = 3; c < row.length; c++) {
@@ -112,6 +122,9 @@ async function generateLocalizationTable(sheets) {
         if (!locale) continue;
         const text = row[c] != null ? String(row[c]) : '';
         buckets[bucket][locale][key] = text;
+        if (Object.keys(_metaObj).length) {
+          buckets[bucket][locale][`@${key}`] = _metaObj;
+        }
       }
     }
   }
@@ -132,7 +145,7 @@ async function writeJsonFiles(buckets, outputDir, prefix, globalMeta, author, co
       const filePath = path.join(bucketDir, fileName);
 
       // Build the object without the timestamp
-      const base = {
+      const body = {
         '@@locale': locale,
         '@@author': author || '',
         '@@comment': commentText || '',
@@ -141,7 +154,7 @@ async function writeJsonFiles(buckets, outputDir, prefix, globalMeta, author, co
         ...messages,
       };
 
-      const newBody = JSON.stringify(base, null, 2);
+      const newBody = JSON.stringify(body, null, 2);
 
       // If file exists, compare its content minus the old timestamp
       if (fs.existsSync(filePath)) {
@@ -162,8 +175,16 @@ async function writeJsonFiles(buckets, outputDir, prefix, globalMeta, author, co
       }
 
       // On new or changed content, add fresh timestamp and write
-      base['@@last_modified'] = new Date().toISOString();
-      const finalText = JSON.stringify(base, null, 2) + '\n';
+      const bodyWithTimestamp = {
+        '@@locale': locale,
+        '@@author': author || '',
+        '@@last_modified': new Date().toISOString(),
+        '@@comment': commentText || '',
+        '@@context': contextText || '',
+        ...globalMeta,
+        ...messages,
+      };
+      const finalText = JSON.stringify(bodyWithTimestamp, null, 2) + '\n';
       fs.writeFileSync(filePath, finalText, 'utf8');
       log(`Written ${filePath}`);
     }

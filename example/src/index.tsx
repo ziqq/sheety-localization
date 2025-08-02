@@ -1,9 +1,10 @@
 import { TransProvider } from '@mbarzda/solid-i18next';
-import { Router } from '@solidjs/router';
-import { render } from 'solid-js/web';
 import { loadLocales } from './locales/index.js';
-import routes from './routes.js';
+import { render } from 'solid-js/web';
+import App from './App.jsx';
 import './styles/index.scss';
+import { Route, Router } from '@solidjs/router';
+import routes from './routes.js';
 
 const root = document.getElementById('root') as HTMLElement;
 
@@ -15,14 +16,22 @@ const root = document.getElementById('root') as HTMLElement;
         lng="en"
         options={{
           resources,
-          lng: 'en', // язык по умолчанию
-          ns: ['app', 'errors'],
-          defaultNS: 'app',
           debug: true,
-          fallbackLng: false,
+          lng: 'en',
+          fallbackLng: 'en',
+          ns: ['app', 'errors', 'todo'],
+          defaultNS: 'app',
+          // keySeparator: '.',
+          // nsSeparator: '.', // ← теперь точка делит namespace и key
+          interpolation: {
+            escapeValue: false,
+            prefix: '{',
+            suffix: '}',
+          },
         }}
-        children={<Router>{routes}</Router>}
-      />
+      >
+        <Router root={App}>{routes}</Router>
+      </TransProvider>
     ),
     root
   );

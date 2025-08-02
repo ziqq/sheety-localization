@@ -9,9 +9,9 @@ export const locales: Record<string, Record<string, () => Promise<{ default: any
     "en": () => import('./errors/app_en.json'),
     "ru": () => import('./errors/app_ru.json'),
   },
-  "test": {
-    "en": () => import('./test/app_en.json'),
-    "ru": () => import('./test/app_ru.json'),
+  "todo": {
+    "en": () => import('./todo/app_en.json'),
+    "ru": () => import('./todo/app_ru.json'),
   },
 };
 
