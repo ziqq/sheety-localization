@@ -4,5 +4,7 @@
   "@@comment": "Generated from Google Sheets",
   "@@context": "From Google Sheets",
   "testLabel": "Тестовое сообщение",
-  "@@last_modified": "2025-08-02T17:50:34.034Z"
+  "testTitle": "Тестовый заголовок",
+  "testSubtitle": "Тестовый подзаголовок",
+  "@@last_modified": "2025-08-02T17:59:12.944Z"
 }
