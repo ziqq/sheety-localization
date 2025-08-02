@@ -3,31 +3,53 @@
 // Default drawer width
 $drawer-width: 60px;
 
-// Layout styles for the application container
-.l-app-container {
+// Default header height
+$header-height: 60px;
+
+.l-app {
   min-height: 100vh;
   max-height: 100vh;
+  display: flex;
+  flex-direction: column;
 
+  &__body {
+    display: flex;
+    flex-direction: row;
+  } // .l-app__body
+} // .l-app
+
+// Layout styles for the application body
+.l-app-body {
   &__drawer {
     background-color: rgb(16, 25, 40);
     width: $drawer-width;
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
     box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
   } // .l-app-container__drawer
 
   &__content {
+    width: 100%;
     min-height: 100vh;
-    margin-left: $drawer-width;
     padding: $offset-base;
     background-color: #f9f9f9;
   } // .l-app-container__content
-} // .l-app-container
+} // .l-app-body
+
+.l-app-header {
+  height: $header-height;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background-color: #f8f9fa;
+
+  &__title {
+    font-size: 1.5rem;
+    font-weight: bold;
+  } // .l-app-header__title
+} // .l-app-header
 
 // Layout styles for the drawer component
-.l-drawer {
+.l-app-drawer {
   &__item {
     display: flex;
     align-items: center;
@@ -38,49 +60,61 @@ $drawer-width: 60px;
 
     &--last {
       margin-top: auto;
-    } // .l-drawer__item--last
+    } // ..l-app-drawer__item--last
 
     svg {
       z-index: 2;
       fill: #fff;
       width: $icon-size--sm;
       height: $icon-size--sm;
-    } // .l-drawer svg
+    } // ..l-app-drawer svg
+  } // .l-app-drawer__item
 
-    a {
-      position: relative;
-      width: $drawer-width - 10px;
-      height: $drawer-width - 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+  &__link {
+    position: relative;
+    width: $drawer-width - 15px;
+    height: $drawer-width - 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: $border-radius;
+
+    &:after {
+      content: '';
+      z-index: 1;
+      opacity: 0;
+      display: block;
+      position: absolute;
       border-radius: $border-radius;
+      background-color: transparent;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transition: background-color, width, opacity, right 0.15s linear;
+    } // .l-app-drawer__link:after
 
+    &:hover {
       &:after {
-        content: '';
-        z-index: 1;
-        opacity: 0;
-        display: block;
-        position: absolute;
-        border-radius: $border-radius;
-        background-color: transparent;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        transition: background-color, width, opacity, right 0.15s linear;
+        opacity: 1;
+        background-color: #495569cc;
+      }
+    } // .l-app-drawer__link a:hover
+
+    &--active {
+      &:after {
+        background-color: $primary-color;
+        opacity: 1;
       }
 
       &:hover {
         &:after {
-          opacity: 1;
-          background-color: #495569cc;
+          background-color: $primary-color;
         }
-        text-decoration: none;
-      } // .l-drawer a:hover
-    } // .l-drawer a
-  } // .l-drawer__item
-} // .l-drawer
+      } // .l-app-drawer__link a:hover
+    } // .l-app-drawer__link--active
+  } // .l-app-drawer__link
+} // .l-app-drawer
 
 .l-container {
   max-width: 650px;

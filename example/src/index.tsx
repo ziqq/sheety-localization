@@ -1,10 +1,11 @@
-import { TransProvider, useTransContext } from '@mbarzda/solid-i18next';
+import { TransProvider } from '@mbarzda/solid-i18next';
+import { Router } from '@solidjs/router';
 import { render } from 'solid-js/web';
-import i18next from 'i18next';
-import App from './App';
+import locales from './locales/index.js';
+import routes from './routes.js';
 import './styles/index.scss';
 
-import locales from './locales/index.js';
+const root = document.getElementById('root') as HTMLElement;
 
 // Load locales dynamically
 async function loadResources() {
@@ -35,9 +36,9 @@ async function loadResources() {
           debug: true,
           fallbackLng: false,
         }}
-        children={<App />}
+        children={<Router>{routes}</Router>}
       />
     ),
-    document.getElementById('root') as HTMLElement
+    root
   );
 })();
