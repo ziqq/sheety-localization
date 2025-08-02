@@ -8,6 +8,12 @@
   "[javascript]": {
     "editor.formatOnSave": true,
   },
+  "[typescript]": {
+    "editor.formatOnSave": true,
+  },
+  "[typescriptreact]": {
+    "editor.formatOnSave": true,
+  },
   "typescript.tsdk": "example/node_modules/typescript/lib",
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.expand": false,
