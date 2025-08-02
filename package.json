@@ -7,7 +7,7 @@
   "homepage": "https://github.com/ziqq/sheety-localization",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ziqq/sheety-localization"
+    "url": "git+https://github.com/ziqq/sheety-localization.git"
   },
   "bugs": {
     "email": "a.a.ustinoff@gmail.com",
