@@ -5,6 +5,15 @@
     "*.ts": "typescript",
     "*.tsx": "typescriptreact"
   },
+  "[css]": {
+    "editor.formatOnSave": true,
+  },
+  "[sass]": {
+    "editor.formatOnSave": true,
+  },
+  "[scss]": {
+    "editor.formatOnSave": true,
+  },
   "[javascript]": {
     "editor.formatOnSave": true,
   },

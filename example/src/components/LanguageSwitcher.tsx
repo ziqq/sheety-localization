@@ -9,12 +9,15 @@ const LanguageSwitcher = () => {
   }
 
   return (
-    <div>
-      <select value={i18next.language} onChange={handleLanguageChange}>
-        <option value="en">{t('englishLabel')}</option>
-        <option value="ru">{t('russianLabel')}</option>
-      </select>
-    </div>
+    <select
+      name="language-switcher"
+      class="c-language-switcher"
+      value={i18next.language}
+      onChange={handleLanguageChange}
+    >
+      <option value="en">{t('englishLabel')}</option>
+      <option value="ru">{t('russianLabel')}</option>
+    </select>
   );
 };
 

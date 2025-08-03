@@ -7,10 +7,26 @@ $drawer-width: 60px;
 $header-height: 60px;
 
 .l-app {
+  overflow: hidden;
   min-height: 100vh;
   max-height: 100vh;
   display: flex;
   flex-direction: column;
+
+  &__header {
+    position: relative;
+
+    &:after {
+      content: '';
+      display: block;
+      position: absolute;
+      width: 100%;
+      height: 1px;
+      background-color: #eaeaea;
+      bottom: -1px;
+      left: $drawer-width;
+    } // .l-app__header:after
+  } // .l-app__header
 
   &__body {
     display: flex;
@@ -27,6 +43,7 @@ $header-height: 60px;
   } // .l-app-container__drawer
 
   &__content {
+    overflow-y: auto;
     width: 100%;
     min-height: 100vh;
     padding: $offset-base;
