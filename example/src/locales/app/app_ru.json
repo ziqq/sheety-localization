@@ -1,6 +1,7 @@
 {
   "@@locale": "ru",
   "@@author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
+  "@@last_modified": "2025-08-07T11:35:25.708Z",
   "@@comment": "Generated from Google Sheets",
   "@@context": "From Google Sheets",
   "localeCode": "ru_RU",
@@ -11,6 +12,5 @@
   "welcomeSubtitle": "Тут будет основной контент!",
   "englishLabel": "Английский",
   "russianLabel": "Русский",
-  "spanishLabel": "Испанский",
-  "@@last_modified": "2025-08-02T18:39:19.018Z"
+  "spanishLabel": "Испанский"
 }

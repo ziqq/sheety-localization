@@ -1,6 +1,7 @@
 {
   "@@locale": "ru",
   "@@author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
+  "@@last_modified": "2025-08-07T11:35:25.709Z",
   "@@comment": "Generated from Google Sheets",
   "@@context": "From Google Sheets",
   "bandwidthLimitExceededError": "Запрос превысил лимит пропускной способности.",
@@ -8,7 +9,7 @@
   "serviceUnavailableError": "В данный момент услуга недоступна, повторите попытку позже.",
   "badGatewayError": "Сервер получил недопустимый ответ от вышестоящего сервера.",
   "notImplementedError": "Запрошенный метод не реализован сервером.",
-  "internalServerError": "#REF!",
+  "internalServerError": "Произошла внутренняя ошибка сервера, повторите попытку позже.",
   "serverError": "Произошла ошибка сервера, повторите попытку позже.",
   "tooManyRequestsError": "Слишком много запросов, повторите попытку позже.",
   "validationError": "Данные запроса недействительны или искажены.",
@@ -23,6 +24,5 @@
   "unknownError": "Произошла неизвестная ошибка, повторите попытку позже.",
   "timeoutError": "Запрос истёк, повторите попытку позже.",
   "networkError": "Не удалось отправить запрос из-за ошибки сети, проверьте подключение к Интернету.",
-  "defaultError": "При обработке запроса произошла ошибка.",
-  "@@last_modified": "2025-08-02T17:50:34.012Z"
+  "defaultError": "При обработке запроса произошла ошибка."
 }

@@ -1,6 +1,7 @@
 {
   "@@locale": "en",
   "@@author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
+  "@@last_modified": "2025-08-07T11:35:25.709Z",
   "@@comment": "Generated from Google Sheets",
   "@@context": "From Google Sheets",
   "bandwidthLimitExceededError": "The request exceeded the bandwidth limit.",
@@ -8,8 +9,8 @@
   "serviceUnavailableError": "The service is currently unavailable, please try again later.",
   "badGatewayError": "The server received an invalid response from the upstream server.",
   "notImplementedError": "The requested method is not implemented by the server.",
-  "internalServerError": "A server error occurred, please try again later.",
-  "serverError": "",
+  "internalServerError": "An internal server error occurred, please try again later.",
+  "serverError": "A server error occurred, please try again later.",
   "tooManyRequestsError": "Too many requests, please try again later.",
   "validationError": "The request data is invalid or malformed.",
   "conflictError": "The request could not be completed due to a conflict with the current state of the resource.",
@@ -23,6 +24,5 @@
   "unknownError": "An unknown error occurred, please try again later.",
   "timeoutError": "The request timed out, please try again later.",
   "networkError": "Failed to send request due to a network error, please check your internet connection.",
-  "defaultError": "An error occurred while processing the request.",
-  "@@last_modified": "2025-08-02T17:50:34.000Z"
+  "defaultError": "An error occurred while processing the request."
 }
