@@ -5,7 +5,7 @@
  *
  * Generate locale JSON files from Google Sheets
  * Usage:
- *       npm script gin/generate.js --credentials ./credentials.json \
+ *       npm script bin/generate.js --credentials ./credentials.json \
  *        --sheet <YOUR_GOOGLE_SHEET_ID> \
  *        --type=[ts|js] \
  *        --prefix=app \
@@ -136,9 +136,17 @@ async function generateLocalizationTable(sheets) {
  * only when the actual content (minus that timestamp) has changed.
  */
 async function writeJsonFiles(buckets, outputDir, prefix, globalMeta, author, commentText, contextText) {
+  if (!fs.existsSync(outputDir)) {
+    log(`Creating output directory: ${outputDir}`);
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+
   for (const [bucket, locs] of Object.entries(buckets)) {
     const bucketDir = path.join(outputDir, bucket);
-    fs.mkdirSync(bucketDir, { recursive: true });
+    if (!fs.existsSync(bucketDir)) {
+      log(`Creating directory: ${bucketDir}`);
+      fs.mkdirSync(bucketDir, { recursive: true });
+    }
 
     for (const [locale, messages] of Object.entries(locs)) {
       const fileName = `${prefix ? prefix + '_' : ''}${locale}.json`;
@@ -166,7 +174,7 @@ async function writeJsonFiles(buckets, outputDir, prefix, globalMeta, author, co
 
           // If nothing but the timestamp changed, skip rewriting
           if (oldBody === newBody) {
-            log(`No new JSON files generated for ${filePath}, ` + 'nothing to do, exiting...');
+            log(`JSON file is up to date, skipping rewrite: ${filePath}`);
             continue;
           }
         } catch {
@@ -354,6 +362,8 @@ async function main() {
     process.exit(1);
   }
 
+  log(`Retrieving data from ${sheets.length} sheets...`);
+
   log('Building localization table...');
   const buckets = await generateLocalizationTable(sheets);
 
@@ -368,7 +378,7 @@ async function main() {
     await generateIndexJs(output, prefix);
   }
 
-  log('Done!');
+  log(`Successfully generated localization files for ${Object.keys(buckets).length} buckets.`);
 }
 
 main().catch((e) => {

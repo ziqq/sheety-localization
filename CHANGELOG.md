@@ -1,3 +1,6 @@
+## 0.0.6
+- **ADDED**: More logs
+
 ## 0.0.5
 - **FIXED**: Parsing `meta`
 
