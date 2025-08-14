@@ -1,3 +1,6 @@
+## 0.0.7
+- **FIXED**: Double quotes in generated index file
+
 ## 0.0.6
 - **ADDED**: More logs
 

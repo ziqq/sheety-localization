@@ -1,17 +1,17 @@
 // This file is generated, do not edit it manually!
 
 export const locales: Record<string, Record<string, () => Promise<{ default: any }>>> = {
-  "app": {
-    "en": () => import('./app/app_en.json'),
-    "ru": () => import('./app/app_ru.json'),
+  'app': {
+    'en': () => import('./app/app_en.json'),
+    'ru': () => import('./app/app_ru.json'),
   },
-  "errors": {
-    "en": () => import('./errors/app_en.json'),
-    "ru": () => import('./errors/app_ru.json'),
+  'errors': {
+    'en': () => import('./errors/app_en.json'),
+    'ru': () => import('./errors/app_ru.json'),
   },
-  "todo": {
-    "en": () => import('./todo/app_en.json'),
-    "ru": () => import('./todo/app_ru.json'),
+  'todo': {
+    'en': () => import('./todo/app_en.json'),
+    'ru': () => import('./todo/app_ru.json'),
   },
 };
 

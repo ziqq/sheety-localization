@@ -216,11 +216,11 @@ async function generateIndexTs(outputDir, prefix) {
 
   // raw object
   for (const bucket of buckets) {
-    lines.push(`  "${bucket}": {`);
+    lines.push(`  '${bucket}': {`);
     const files = fs.readdirSync(path.join(outputDir, bucket)).filter((f) => f.endsWith('.json'));
     for (const f of files) {
       const locale = f.replace(new RegExp(`^${prefix}_?`), '').replace(/\.json$/, '');
-      lines.push(`    "${locale}": () => import('./${bucket}/${f}'),`);
+      lines.push(`    '${locale}': () => import('./${bucket}/${f}'),`);
     }
     lines.push('  },');
   }
@@ -260,11 +260,11 @@ async function generateIndexJs(outputDir, prefix) {
 
   const lines = ['// This file is generated, do not edit it manually!', '', `export const ${localesVar} = {`];
   for (const bucket of buckets) {
-    lines.push(`  "${bucket}": {`);
+    lines.push(`  '${bucket}': {`);
     const files = fs.readdirSync(path.join(outputDir, bucket)).filter((f) => f.endsWith('.json'));
     for (const f of files) {
       const locale = f.replace(new RegExp(`^${prefix}_?`), '').replace(/\.json$/, '');
-      lines.push(`    "${locale}": () => import('./${bucket}/${f}'),`);
+      lines.push(`    '${locale}': () => import('./${bucket}/${f}'),`);
     }
     lines.push('  },');
   }
