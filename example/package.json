@@ -23,7 +23,8 @@
     "watch-lang": "node watch-lang.js",
     "lint": "npx eslint \"src/**/**.ts\"",
     "build:solid": "node ./src/scripts/build_solid.js",
-    "format-lang": "node ./src/scripts/format_lang.js"
+    "format-lang": "node ./src/scripts/format_lang.js",
+    "typesafe-i18n": "typesafe-i18n"
   },
   "author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
   "license": "MIT",
