@@ -1,0 +1,12 @@
+@use '../_variables' as *;
+
+.c-button {
+  background-color: $primary-color;
+  border-radius: $border-radius;
+  min-height: $field-height-large;
+  color: #fff;
+
+  &:hover {
+    background-color: $primary-color;
+  }
+}

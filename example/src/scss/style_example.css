@@ -1,0 +1,157 @@
+/* Material Icons */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+/* NOTE: The original SASS used interpolation #{$hover-alpha}. Replace the fallback value below if different. */
+:root {
+  --vh: 1vh;
+  --z-below: -1;
+  --hover-alpha: 0.08; /* TODO: set from $hover-alpha */
+  --reflect: 1;
+
+  --transition-standard-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-standard-in-time: 0.3s;
+  --transition-standard-out-time: 0.25s;
+  --transition-standard-in: var(--transition-standard-in-time) var(--transition-standard-easing);
+  --transition-standard-out: var(--transition-standard-out-time) var(--transition-standard-easing);
+  --transform-origin-inline-start: left;
+  --transform-origin-inline-end: right;
+  --transform-origin-left-center: left center;
+  --transform-origin-right-center: right center;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* disable overscroll behavior on macOS */
+}
+
+/* Responsive rule converted from @include respond-to(handhelds) */
+@media (max-width: 600px) {
+  html,
+  body { height: calc(var(--vh, 1vh) * 100); }
+}
+
+html.is-ios {
+  position: fixed; /* fix iOS fullscreen scroll */
+  /* disable image longtapping */
+  -user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html.no-backdrop {
+  --menu-background-color: var(--surface-color);
+  --menu-backdrop-filter: none;
+}
+
+@supports (padding: max(0)) {
+  html {
+    padding: 0 min(16px, env(safe-area-inset-right)) 0 min(16px, env(safe-area-inset-left));
+  }
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+body {
+  background-color: var(--body-background-color);
+  color: var(--primary-text-color);
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+body.has-auth-pages { /* expanded from body &.has-auth-pages */
+  background-color: var(--surface-color);
+}
+
+body.deactivated {
+  animation: grayscale-in var(--transition-standard-in) forwards;
+}
+
+body.deactivated-backwards {
+  animation: grayscale-out var(--transition-standard-out) forwards;
+}
+
+@keyframes grayscale-in {
+  0% { filter: grayscale(0); }
+  100% { filter: grayscale(1); }
+}
+
+@keyframes grayscale-out {
+  0% { filter: grayscale(1); }
+  100% { filter: grayscale(0); }
+}
+
+input,
+[contenteditable='true'] {
+  caret-color: var(--primary-color);
+  color: var(--primary-text-color);
+  background-color: transparent;
+}
+
+/* Possible fix Safari's password autocomplete */
+input::-webkit-contacts-auto-fill-button,
+input::-webkit-credentials-auto-fill-button {
+  visibility: hidden;
+  position: absolute;
+  right: 0;
+}
+
+input:-webkit-autofill::first-line {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Ubuntu, Arial, sans-serif;
+  font-size: 16px;
+}
+
+.preloader {
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* expanded nested selector */
+.preloader .preloader-path { stroke: var(--primary-color); }
+
+.toasts-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 0.5rem 1rem;
+  background-color: rgba(0, 0, 0, 0.66);
+  color: #fff;
+  font-size: 1rem;
+  border-radius: 8px; /* TODO: replace with value of $border-radius-medium */
+  max-width: min(30rem, calc(100vw - 2rem));
+  opacity: 0;
+  backdrop-filter: blur(25px);
+  pointer-events: all;
+  word-break: break-word;
+  transition: opacity var(--transition-standard-in); /* from @include animation-level(2) */
+}
+
+.toast.is-visible { opacity: 1; }
+
+.toast b { color: inherit; }
+
+.toast a {
+  color: #60a5e9 !important;
+  cursor: pointer;
+}

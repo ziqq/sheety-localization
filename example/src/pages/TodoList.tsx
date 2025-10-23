@@ -1,6 +1,6 @@
 import { For, createEffect, Component } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
-import { Task } from '../types';
+import { Task } from '../types/index';
 import { Trans, useTransContext } from '@mbarzda/solid-i18next';
 
 const TodoList: Component = () => {

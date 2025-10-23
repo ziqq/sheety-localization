@@ -1,6 +1,6 @@
 import { Trans, useTransContext } from '@mbarzda/solid-i18next';
 import { Component } from 'solid-js';
-import MainLayout from '../layouts/MainLayout';
+import MainLayout from '../components/mainLayout';
 
 const PageTwo: Component = () => {
   const [t] = useTransContext();

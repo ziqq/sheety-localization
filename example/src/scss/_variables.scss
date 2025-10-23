@@ -1,0 +1,46 @@
+$primary-color: #3498db;
+$secondary-color: #2ecc71;
+
+$font-size: 17px;
+$font-family: 'IBM Plex Mono', sans-serif;
+
+// Default icon size
+$icon-size: 24px;
+$icon-size-small: 20px;
+
+$field-height-large: 56px;
+$field-height-medium: 44px;
+$field-height-small: 36px;
+
+// Border radius variables
+$border-radius-large: 16px;
+$border-radius-medium: 12px;
+$border-radius-small: 8px;
+$border-radius: 10px;
+
+$offset-base: 16px;
+
+// Additional variables
+$placeholder-color: #9e9e9e;
+
+$hover-alpha: 0.08;
+
+//$small-screen: 720px;
+$small-screen: 600px;
+//$small-screen: 900px;
+$medium-screen: 1275px;
+$large-screen: 1680px;
+//$large-screen: 16800px;
+
+$floating-left-sidebar: 925px;
+$messages-container-width: 728px;
+
+$chat-input-size: 3.375rem;
+$chat-input-handhelds-size: 2.875rem;
+$chat-padding: 0.8125rem;
+$chat-padding-handhelds: 0.5rem;
+$chat-input-inner-padding: 0.5rem;
+$chat-input-inner-padding-handhelds: 0.25rem;
+$btn-send-margin: 0.5rem;
+
+$use-acceleration: false;

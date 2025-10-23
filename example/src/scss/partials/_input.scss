@@ -1,0 +1,10 @@
+@use '../_variables' as *;
+
+.c-input {
+  display: block;
+  border: 1px solid #ccc;
+  padding: $offset-base;
+  font-size: $font-size;
+  min-height: $field-height-large;
+  border-radius: $border-radius;
+}

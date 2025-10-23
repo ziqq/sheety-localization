@@ -1,4 +1,4 @@
-@use './_variables.scss' as *;
+@use '../_variables' as *;
 
 // Default drawer width
 $drawer-width: 60px;
@@ -82,8 +82,8 @@ $header-height: 60px;
     svg {
       z-index: 2;
       fill: #fff;
-      width: $icon-size--sm;
-      height: $icon-size--sm;
+      width: $icon-size-small;
+      height: $icon-size-small;
     } // ..l-app-drawer svg
   } // .l-app-drawer__item
 

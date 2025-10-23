@@ -1,0 +1,131 @@
+/* Language Selector */
+.language-switcher {
+  position: relative;
+  display: inline-block;
+
+  &-trigger {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+
+    &:hover {
+      background: var(--bg-secondary);
+      border-color: var(--primary-color);
+    }
+
+    &:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+
+    [aria-expanded='true'] {
+      .language-switcher-arrow {
+        transform: rotate(180deg);
+      }
+    }
+  }
+
+  &-current {
+    font-weight: 500;
+  }
+
+  &-arrow {
+    font-size: 0.75rem;
+    transition: transform 0.2s ease;
+  }
+
+  &-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 200px;
+    margin-top: 0.25rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-lg);
+    z-index: 10001;
+    overflow: hidden;
+
+    &--portal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: auto;
+      margin-top: 0;
+      z-index: 10002;
+      animation: dropdownSlideIn 0.15s ease-out;
+    }
+  }
+}
+
+@keyframes dropdownSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.language-switcher-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.language-switcher-option:hover {
+  background: var(--bg-secondary);
+}
+
+.language-switcher-option:focus {
+  background: var(--bg-secondary);
+  outline: none;
+}
+
+.language-switcher-option--active {
+  background: var(--primary-color);
+  color: var(--text-light);
+}
+
+.language-switcher-option--active:hover {
+  background: var(--primary-hover);
+}
+
+.language-switcher-option-code {
+  font-weight: 600;
+  font-family: monospace;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  min-width: 2rem;
+}
+
+.language-switcher-option-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.language-switcher-option-check {
+  font-weight: bold;
+  color: var(--text-light);
+}

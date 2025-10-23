@@ -2,11 +2,16 @@ import { TransProvider } from '@mbarzda/solid-i18next';
 import { loadLocales } from './locales/index.js';
 import { render } from 'solid-js/web';
 import App from './App.jsx';
-import './styles/index.scss';
+import './scss/style.scss';
 import { Route, Router } from '@solidjs/router';
 import routes from './routes.js';
 
 const root = document.getElementById('root') as HTMLElement;
+
+// function setManifest() {
+//   const manifest = document.getElementById('manifest') as HTMLLinkElement;
+//   if(manifest) manifest.href = `site${IS_APPLE && !IS_APPLE_MOBILE ? '_apple' : ''}.webmanifest?v=jw3mK7G9Aq`;
+// }
 
 (async () => {
   const resources = await loadLocales();
