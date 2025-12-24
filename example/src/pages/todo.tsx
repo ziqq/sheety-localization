@@ -3,7 +3,7 @@ import { createStore, produce } from 'solid-js/store';
 import { Task } from '../types/index';
 import { Trans, useTransContext } from '@mbarzda/solid-i18next';
 
-const TodoList: Component = () => {
+const TodoPage: Component = () => {
   const [t] = useTransContext();
 
   const [state, setState] = createStore<{
@@ -75,4 +75,4 @@ const TodoList: Component = () => {
   );
 };
 
-export default TodoList;
+export default TodoPage;

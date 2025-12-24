@@ -3,23 +3,19 @@ import { lazy } from 'solid-js';
 const routes = [
   {
     path: '/',
-    component: lazy(() => import('./pages/PageOne')),
+    component: lazy(() => import('./pages/sheety')),
   },
   {
-    path: '/page-one',
-    component: lazy(() => import('./pages/PageOne')),
+    path: '/i18n',
+    component: lazy(() => import('./pages/i18n')),
   },
   {
-    path: '/page-two',
-    component: lazy(() => import('./pages/PageTwo')),
-  },
-  {
-    path: '/page-three',
-    component: lazy(() => import('./pages/PageThree')),
+    path: '/sheety',
+    component: lazy(() => import('./pages/sheety')),
   },
   {
     path: '/todo',
-    component: lazy(() => import('./pages/TodoList')),
+    component: lazy(() => import('./pages/todo')),
   },
 ];
 

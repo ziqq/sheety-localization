@@ -153,7 +153,7 @@ export function LanguageSwitcher() {
   );
 }
 
-export const SheetyLanguageSwitcher = () => {
+export const LanguageSwitcher$Sheety = () => {
   const [t, { changeLanguage }] = useTransContext();
 
   function handleLanguageChange(event: { target: { value: string } }) {
