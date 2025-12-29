@@ -1,6 +1,6 @@
 import { Component } from 'solid-js';
-import Header from './header';
-import Menu from './menu';
+import Header from './Header';
+import Menu from './Menu';
 
 const MainLayout: Component<{ children?: any }> = (props) => <div class="l-app-content">{props.children}</div>;
 

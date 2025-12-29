@@ -1,7 +1,7 @@
 import { Component, Show, createEffect, createMemo, createSignal } from 'solid-js';
 import { useTransContext } from '@mbarzda/solid-i18next';
 import { useI18n } from '../contexts/i18n.context';
-import { LanguageSwitcher, LanguageSwitcher$Sheety } from './languageSwitcher';
+import { LanguageSwitcher, LanguageSwitcher$Sheety } from './LanguageSwitcher';
 import { useLocation } from '@solidjs/router';
 
 const Header: Component<{ class: string }> = (props) => {

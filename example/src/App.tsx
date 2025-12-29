@@ -1,8 +1,8 @@
 import { Component } from 'solid-js';
 import { Router } from '@solidjs/router';
 import { I18nProvider } from './contexts/i18n.context';
-import Header from './components/header';
-import Menu from './components/menu';
+import Header from './components/Header';
+import Menu from './components/Menu';
 import routes from './routes';
 
 const App: Component<{ children?: any }> = (props) => (
