@@ -5,7 +5,7 @@ import Header from './components/Header';
 import Menu from './components/Menu';
 import routes from './routes';
 
-const App: Component<{ children?: any }> = (props) => (
+const App: Component<{ children?: any }> = (props: any) => (
   <I18nProvider>
     <div class="l-app">
       <Header class="l-app__header" />
