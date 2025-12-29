@@ -1,7 +1,7 @@
 {
   "@@locale": "en",
   "@@author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
-  "@@last_modified": "2025-08-07T11:35:25.709Z",
+  "@@last_modified": "2025-12-29T06:49:55.849Z",
   "@@comment": "Generated from Google Sheets",
   "@@context": "From Google Sheets",
   "title": "My tasks for today",
@@ -12,5 +12,6 @@
         "type": "String"
       }
     }
-  }
+  },
+  "addButton": "Add a task"
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /*
- * generate.js
+ * generate.jsв
  *
  * Generate locale JSON files from Google Sheets
  * Usage:
@@ -23,8 +23,8 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
 // Logger
-const log = console.log;
-const err = console.error;
+const log = (...args) => console.log('[INFO]', ...args);
+const err = (...args) => console.error('[ERROR]', ...args);
 
 // Sanitize keys
 function sanitize(input) {
@@ -44,26 +44,72 @@ function columnName(index) {
   return name;
 }
 
+// Build ignore patterns from a comma-separated string
+function buildIgnorePatterns(patternString) {
+  if (!patternString) return [];
+  return patternString
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .map((p) => {
+      try {
+        return new RegExp(p);
+      } catch {
+        err(`Invalid ignore pattern "${p}", skipping`);
+        return null;
+      }
+    })
+    .filter(Boolean);
+}
+
 // Fetch spreadsheet data
-async function fetchSpreadsheet(auth, spreadsheetId) {
+async function fetchSpreadsheet(auth, spreadsheetId, ignorePatterns = []) {
   const sheetsApi = google.sheets({ version: 'v4', auth });
-  const meta = await sheetsApi.spreadsheets.get({ spreadsheetId });
+  let meta;
+  try {
+    meta = await sheetsApi.spreadsheets.get({ spreadsheetId });
+  } catch (e) {
+    const status = e && e.response && e.response.status;
+    if (status === 403) {
+      err('Google Sheets API returned 403 (forbidden).');
+      err('Please make sure the spreadsheet is shared with the service account');
+      err('from your credentials.json (at least Viewer access).');
+    } else if (status === 404) {
+      err('Google Sheets API returned 404 (not found).');
+      err('Please verify the --sheet (spreadsheetId) argument is correct.');
+    } else {
+      err(`Error fetching spreadsheet metadata: ${e}`);
+    }
+    process.exit(1);
+  }
+
   const sheetList = meta.data.sheets || [];
   const result = [];
+  let skippedByIgnore = 0;
+  let skippedByInsufficient = 0;
   for (const sheet of sheetList) {
     const title = sheet.properties?.title;
     if (!title) {
-      err(`Skipping sheet with missing title`);
+      err('Skipping sheet with missing title');
+      continue;
+    }
+    if (ignorePatterns.some((re) => re.test(title))) {
+      log(`Ignoring sheet "${title}" as it matches ignore patterns`);
+      skippedByIgnore++;
       continue;
     }
     const resp = await sheetsApi.spreadsheets.values.get({ spreadsheetId, range: title });
     const values = resp.data.values;
     if (!values || values.length < 2 || values[0].length < 4) {
       err(`Sheet "${title}" has insufficient data, skipping`);
+      skippedByInsufficient++;
       continue;
     }
     result.push({ title, values });
   }
+  log(
+    `Spreadsheet summary: total sheets=${sheetList.length}, usable=${result.length}, ignored=${skippedByIgnore}, insufficient=${skippedByInsufficient}`
+  );
   return result;
 }
 
@@ -86,15 +132,26 @@ async function generateLocalizationTable(sheets) {
         locales[i] = null;
       }
     }
+    let skippedEmptyRows = 0;
+    let skippedEmptyLabels = 0;
+    let processedRows = 0;
+
     for (let r = 1; r < values.length; r++) {
-      const row = values[r];
-      if (row.length < header.length) {
-        err(`Row ${r + 1} length mismatch, skipping`);
+      const row = values[r] || [];
+      if (row.length === 0 || row.every((cell) => cell == null || String(cell).trim() === '')) {
+        err(`Sheet "${title}" has empty row ${r + 1}, skipping`);
+        skippedEmptyRows++;
+        continue;
+      }
+      if (row.length < 3) {
+        err(`Sheet "${title}" has row ${r + 1} with less than 3 base columns, skipping`);
+        skippedEmptyRows++;
         continue;
       }
       const label = row[0];
       if (typeof label !== 'string' || !label.trim()) {
         err(`Empty label at row ${r + 1}, skipping`);
+        skippedEmptyLabels++;
         continue;
       }
       // const key = sanitize(label);
@@ -109,24 +166,39 @@ async function generateLocalizationTable(sheets) {
       // }
       const key = sanitize(label);
       const metaRaw = row[2] || '';
-      let _metaObj = {};
-      if (typeof metaRaw === 'string' && metaRaw.trim().startsWith('{') && metaRaw.trim().endsWith('}')) {
-        try {
-          _metaObj = JSON.parse(metaRaw);
-        } catch {
-          err(`Invalid JSON in meta at row ${r + 1}`);
+      let _metaObj = null;
+      let _metaText = null;
+      if (typeof metaRaw === 'string') {
+        const trimmed = metaRaw.trim();
+        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+          try {
+            _metaObj = JSON.parse(trimmed);
+          } catch {
+            err(`Invalid JSON in meta at row ${r + 1}`);
+          }
+        } else if (trimmed.length > 0) {
+          _metaText = trimmed;
         }
       }
-      for (let c = 3; c < row.length; c++) {
+      for (let c = 3; c < header.length; c++) {
         const locale = locales[c];
         if (!locale) continue;
-        const text = row[c] != null ? String(row[c]) : '';
+        const cell = row.length > c ? row[c] : '';
+        const text = cell != null ? String(cell) : '';
         buckets[bucket][locale][key] = text;
-        if (Object.keys(_metaObj).length) {
+        if (_metaObj && Object.keys(_metaObj).length) {
           buckets[bucket][locale][`@${key}`] = _metaObj;
+        } else if (_metaText) {
+          buckets[bucket][locale][`@${key}`] = _metaText;
         }
       }
+
+      processedRows++;
     }
+
+    log(
+      `Sheet "${title}" summary: processed=${processedRows}, skippedEmptyRows=${skippedEmptyRows}, skippedEmptyLabels=${skippedEmptyLabels}`
+    );
   }
   return buckets;
 }
@@ -140,6 +212,9 @@ async function writeJsonFiles(buckets, outputDir, prefix, globalMeta, author, co
     log(`Creating output directory: ${outputDir}`);
     fs.mkdirSync(outputDir, { recursive: true });
   }
+
+  let writtenFiles = 0;
+  let skippedUpToDate = 0;
 
   for (const [bucket, locs] of Object.entries(buckets)) {
     const bucketDir = path.join(outputDir, bucket);
@@ -175,6 +250,7 @@ async function writeJsonFiles(buckets, outputDir, prefix, globalMeta, author, co
           // If nothing but the timestamp changed, skip rewriting
           if (oldBody === newBody) {
             log(`JSON file is up to date, skipping rewrite: ${filePath}`);
+            skippedUpToDate++;
             continue;
           }
         } catch {
@@ -195,8 +271,11 @@ async function writeJsonFiles(buckets, outputDir, prefix, globalMeta, author, co
       const finalText = JSON.stringify(bodyWithTimestamp, null, 2) + '\n';
       fs.writeFileSync(filePath, finalText, 'utf8');
       log(`Written ${filePath}`);
+      writtenFiles++;
     }
   }
+
+  log(`JSON write summary: written=${writtenFiles}, skippedUpToDate=${skippedUpToDate}`);
 }
 
 // Generate index.ts file
@@ -290,26 +369,83 @@ async function generateIndexJs(outputDir, prefix) {
   log(`Written JavaScript locale index at ${indexPath}`);
 }
 
+/// Help message for the command line arguments
+const help = `
+Localization Generator
+
+Generate JSON files from Google Sheets.
+This script uses the Google Sheets API to fetch
+the localization table from a spreadsheet and generates JSON files for localization.
+You need to create a service account and download the credentials JSON file.
+You can find more information about how to create a service account here:
+https://cloud.google.com/docs/authentication/getting-started#creating_a_service_account
+
+Usage: node bin/generate.js [options]
+`;
+
 // Main
 async function main() {
-  // if (yargs(hideBin(process.argv)).option('help', { alias: 'h', type: 'boolean', default: false }).argv.help == true) {
-  //   process.exit(0);
-  // }
-
   log('Reading command line arguments...');
   const argv = yargs(hideBin(process.argv))
-    .option('credentials', { alias: 'c', type: 'string', demandOption: true })
-    .option('sheet', { alias: 's', type: 'string', demandOption: true })
-    .option('output', { alias: 'o', type: 'string', default: 'src/locales' })
-    .option('prefix', { alias: 'p', type: 'string', default: '' })
-    .option('meta', { alias: 'm', type: 'string', default: '{}' })
-    .option('type', { alias: 't', choices: ['js', 'ts'], default: 'js', describe: 'index file type' })
-    .option('author', { type: 'string', describe: 'Author metadata' })
-    .option('comment', { type: 'string', describe: 'Comment metadata' })
-    .option('context', { type: 'string', describe: 'Context metadata' })
-    .help().argv;
+    .scriptName('sheety-localization-generate')
+    .usage('Usage: $0 --credentials ./credentials.json --sheet <SPREADSHEET_ID> [options]')
+    .option('credentials', {
+      alias: ['c', 'key', 'keyfile', 'cred', 'creds', 'secret'],
+      type: 'string',
+      demandOption: true,
+      describe: 'Path to service account credentials JSON file',
+      default: 'credentials.json',
+    })
+    .option('sheet', {
+      alias: ['s', 'spreadsheet', 'spreadsheet-id', 'table', 'source', 'id'],
+      type: 'string',
+      demandOption: true,
+      describe: 'Google Spreadsheet ID',
+    })
+    .option('output', {
+      alias: ['o', 'out', 'dir'],
+      type: 'string',
+      default: 'src/locales',
+      describe: 'Output directory for generated locale files',
+    })
+    .option('prefix', {
+      alias: ['p', 'bucket-prefix'],
+      type: 'string',
+      default: '',
+      describe: 'Prefix for locale file names (e.g. app_en.json)',
+    })
+    .option('meta', {
+      alias: ['m', 'global-meta'],
+      type: 'string',
+      default: '{}',
+      describe: 'Global meta JSON string merged into every locale file',
+    })
+    .option('meta-file', {
+      alias: ['metaPath', 'meta-json'],
+      type: 'string',
+      describe: 'Path to JSON file with global meta (overrides --meta if provided)',
+    })
+    .option('type', {
+      alias: ['t', 'index-type'],
+      choices: ['js', 'ts'],
+      default: 'js',
+      describe: 'Type of generated index file (js or ts)',
+    })
+    .option('author', { type: 'string', describe: 'Author metadata stored under @@author' })
+    .option('comment', { type: 'string', describe: 'Comment metadata stored under @@comment' })
+    .option('context', { type: 'string', describe: 'Context metadata stored under @@context' })
+    .option('ignore', {
+      alias: ['i', 'ignore-table', 'exclude', 'skip'],
+      type: 'string',
+      default: '',
+      describe: 'Comma-separated list of RegExp patterns to ignore sheet titles (e.g. "help,backend-.*,temp-.*")',
+    })
+    .help('help')
+    .alias('help', 'h')
+    .epilog(help)
+    .parse();
 
-  const { credentials, sheet, output, prefix, meta, type, author, comment, context } = argv;
+  const { credentials, sheet, output, prefix, meta, metaFile, type, author, comment, context, ignore } = argv;
 
   // Validate arguments
   if (credentials == null || sheet == null || type == null) {
@@ -318,10 +454,19 @@ async function main() {
   }
 
   let globalMeta = {};
-  try {
-    globalMeta = JSON.parse(meta);
-  } catch {
-    err('Invalid --meta JSON');
+  if (metaFile) {
+    try {
+      const metaText = fs.readFileSync(metaFile, 'utf8');
+      globalMeta = JSON.parse(metaText);
+    } catch (e) {
+      err(`Failed to read meta from file "${metaFile}": ${e}`);
+    }
+  } else if (meta) {
+    try {
+      globalMeta = JSON.parse(meta);
+    } catch {
+      err('Invalid --meta JSON');
+    }
   }
 
   log(`Credentials path: ${path.resolve(credentials)}`);
@@ -351,12 +496,22 @@ async function main() {
       scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
     }).getClient();
   } catch (e) {
-    err(`Error creating Google Sheets API client: ${e}`);
+    const message = e && e.message ? String(e.message) : String(e);
+    if (message.includes('invalid_grant') && message.includes('Invalid JWT Signature')) {
+      err('Error creating Google Sheets API client: invalid or revoked service account key in credentials.json.');
+      err('The example credentials bundled with this project are not intended for real use.');
+      err('Please create your own service account JSON in Google Cloud Console,');
+      err('download the key file, place it as example/credentials.json, and share your sheet');
+      err('with the service account email from that file (as Viewer or higher).');
+    } else {
+      err(`Error creating Google Sheets API client: ${e}`);
+    }
     process.exit(1);
   }
 
   log('Fetching spreadsheet data...');
-  const sheets = await fetchSpreadsheet(auth, sheet);
+  const ignorePatterns = buildIgnorePatterns(ignore);
+  const sheets = await fetchSpreadsheet(auth, sheet, ignorePatterns);
   if (!sheets.length) {
     err('No sheets found');
     process.exit(1);
@@ -385,17 +540,3 @@ main().catch((e) => {
   err(e);
   process.exit(1);
 });
-
-/// Help message for the command line arguments
-const help = `
-Localization Generator
-
-Generate JSON files from Google Sheets.
-This script uses the Google Sheets API to fetch
-the localization table from a spreadsheet and generates JSON files for localization.
-You need to create a service account and download the credentials JSON file.
-You can find more information about how to create a service account here:
-https://cloud.google.com/docs/authentication/getting-started#creating_a_service_account
-
-Usage: npm run bin/generate.js [options]
-`;

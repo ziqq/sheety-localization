@@ -23,7 +23,7 @@
 
 ## TL;DR
 
-1. Create a Google Sheet with columns: `key | description | en | ru | ...`.
+1. Create a Google Sheet with columns: `label | description | meta | en | ru | ...`.
 2. Get a Google Cloud service account, enable Sheets API, share the spreadsheet.
 3. Install dependencies:
 
@@ -55,7 +55,7 @@ sheety-localization \
 - Node.js >= 18
 - Google Service Account with access to Google Sheets API
 - Google Sheet with first line:
-  `key | description | en | ru | ... (other locales)`
+  `label | description | meta | en | ru | ... (other locales)`
 
 ---
 
@@ -86,16 +86,18 @@ sheety-localization \
 
 ### Option descriptions
 
-- `--credentials`, `-c`: Path to service account JSON (required)
+- `--credentials`, `-c`: Path to service account JSON (defaults to `credentials.json` in CWD)
 - `--sheet`, `-s`: Google Spreadsheet ID (required)
 - `--output`, `-o`: Root folder for locales (`src/locales` by default)
-- `--prefix`, `-p`: Prefix for files (`app`)
-- `--meta`, `-m`: JSON string with global fields (`{}`)
+- `--prefix`, `-p`: Prefix for files (`app` → `app_en.json`, `app_ru.json`, ...)
+- `--meta`, `-m`: JSON string with global fields merged into every JSON file (default `{}`)
+- `--meta-file`: Path to JSON file with global meta (has priority over `--meta`)
 - `--type`, `-t`: Type of barrel file (`js` or `ts`)
-- `--author`: Author for metadata
-- `--comment`: Comment for metadata
-- `--context`: Context/version for metadata
-- `--help`, `-h`: Show help
+- `--author`: Author for metadata (stored under `@@author`)
+- `--comment`: Comment for metadata (stored under `@@comment`)
+- `--context`: Context/version for metadata (stored under `@@context`)
+- `--ignore`, `-i`: Comma-separated list of RegExp patterns to ignore sheets by title (e.g. `help,backend-.*,temp-.*`)
+- `--help`, `-h`: Show detailed help with all options
 
 ### Intro your app
 
@@ -111,10 +113,14 @@ const locales = await loadLocales();
 
 1. **Prepare Google Sheet**
 
-- First line: `key | description | en | ru | ...`
-- Each line is one localization line.
+- First line: `label | description | meta | en | ru | ...`
+- Each line is one localization row:
+  - `label` — key for the localization string.
+  - `description` — optional description for context (not used in output files).
+  - `meta` — optional JSON string with metadata for this label (merged into output).
+  - `en`, `ru`, ... — columns for each locale with translation strings.
 
-2. **Create a service account and share the spreadsheet**
+1. **Create a service account and share the spreadsheet**
 
 - In Google Cloud Console, create a project, enable Sheets API.
 - Create a service account, download `credentials.json`.
