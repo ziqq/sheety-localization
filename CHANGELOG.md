@@ -1,3 +1,6 @@
+## 0.1.0
+- **ADDED**: TypeScript types and converted codebase to TypeScript
+
 ## 0.0.8
 - **CHANGED**: Improved CLI UX (richer `--help`, extra aliases, better usage text)
 - **CHANGED**: Updated README to reflect `label | description | meta | ...` sheet format and new options
