@@ -5,7 +5,7 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "Launch Example App",
+      "name": "run:example",
       "cwd": "${workspaceFolder}/example",
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",

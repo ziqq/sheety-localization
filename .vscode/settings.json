@@ -23,11 +23,30 @@
   "[typescriptreact]": {
     "editor.formatOnSave": true,
   },
-  "typescript.tsdk": "example/node_modules/typescript/lib",
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "html.format.wrapLineLength": 0,
+  "html.validate.styles": false,
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "prettier.prettierPath": "./node_modules/prettier/index.cjs",
+  "typescript.tsdk": "./node_modules/typescript/lib",
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.expand": false,
   "explorer.fileNesting.patterns": {
-    ".gitignore": ".gitattributes, .gitmodules, .gitmessage, .mailmap, .git-blame*",
-    "readme*": "authors, backers.md, changelog*, citation*, code_of_conduct.md, codeowners, contributing.md, contributors, copying, credits, governance.md, history.md, license*, maintainers, readme*, security.md, sponsors.md, $(capture).*.md"
+    ".env": ".env.*",
+    "firebase.json": ".firebase*, storage.rules",
+    "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, .nvmrc, .yarnrc",
+    ".editorconfig": ".babelrc, .prettierrc, .stylelintrc, stylelint.config.js",
+    ".gitignore": ".gitattributes, .gitmodules, .gitmessage, .mailmap, .git-blame*, .npmignore",
+    "readme*": "authors, backers.md, changelog*, citation*, code_of_conduct.md, codeowners, contributing.md, contributors, copying, credits, governance.md, history.md, license*, maintainers, readme*, security.md, sponsors.md",
+    "vite.config.*": "tsconfig.*, commitMessageConfig.*, jest.config.*, svgo.config.*, tailwind.config.*, vitest.config.*, webpack.config.*, windi.config.*, postcss.config.*, eslint.config.*, .babelrc, babel.config.*"
   },
 }

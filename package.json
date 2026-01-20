@@ -1,7 +1,7 @@
 {
   "name": "sheety-localization",
-  "description": "CLI to generate locale JSON and index files from Google Sheets",
-  "version": "0.1.0",
+  "description": "CLI to generate localization from Google Sheets",
+  "version": "0.1.1",
   "license": "MIT",
   "type": "module",
   "author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
@@ -14,22 +14,23 @@
     "email": "a.a.ustinoff@gmail.com",
     "url": "https://github.com/ziqq/sheety-localization/issues"
   },
-  "main": "bin/generate.js",
+  "main": "bin/generate.min.js",
   "bin": {
-    "sheety-localization": "bin/generate.js"
+    "sheety-localization": "bin/generate.min.js"
   },
   "scripts": {
     "test": "echo \"No tests yet\"",
-    "build": "tsc"
+    "build": "tsc && esbuild bin/generate.js --minify --format=esm --platform=node --target=node18 --outfile=bin/generate.min.js && rm -rf bin/generate.js"
   },
   "dependencies": {
-    "googleapis": "^169.0.0",
+    "googleapis": "^170.1.0",
     "yargs": "^18.0.0"
   },
   "devDependencies": {
     "@types/yargs": "^17.0.35",
-    "@types/node": "^25.0.3",
-    "typescript": "^5.9.3"
+    "@types/node": "^25.0.9",
+    "typescript": "^5.9.3",
+    "esbuild": "^0.27.2"
   },
   "files": [
     "bin/",

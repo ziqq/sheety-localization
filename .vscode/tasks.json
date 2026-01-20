@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "sheety-localization:generate:npm",
+      "label": "npm:sheety-localization:generate:",
       "detail": "Generate localization files from Google Sheets",
       "icon": {
         "color": "terminal.ansiGreen",
@@ -26,7 +26,7 @@
       "problemMatcher": []
     },
     {
-      "label": "sheety-localization:generate:bin",
+      "label": "bin:sheety-localization:generate",
       "detail": "Generate localization files from Google Sheets used local sheety-localization",
       "icon": {
         "color": "terminal.ansiGreen",
@@ -34,7 +34,7 @@
       },
       "type": "shell",
       "command": [
-        "node ../bin/generate.js",
+        "node ../bin/generate.min.js",
         "--credentials ./credentials.json", // Path to the Google Sheets credentials file
         "--sheet 1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw", // Google Sheets ID
         "--type=ts", // Set the output index file type to TypeScript

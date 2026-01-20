@@ -1,13 +1,16 @@
+## 0.1.1
+- **CHANGED**: README.md
+
 ## 0.1.0
 - **ADDED**: TypeScript types and converted codebase to TypeScript
 
 ## 0.0.8
-- **CHANGED**: Improved CLI UX (richer `--help`, extra aliases, better usage text)
-- **CHANGED**: Updated README to reflect `label | description | meta | ...` sheet format and new options
 - **ADDED**: Ignore sheets by title via `--ignore` patterns
 - **ADDED**: Support global meta from file via `--meta-file`
-- **CHANGED**: More robust row parsing and `meta` handling (JSON or plain text)
 - **CHANGED**: Extended logging with per-sheet and per-run summaries
+- **CHANGED**: More robust row parsing and `meta` handling (JSON or plain text)
+- **CHANGED**: Improved CLI UX (richer `--help`, extra aliases, better usage text)
+- **CHANGED**: Updated README to reflect `label | description | meta | ...` sheet format and new options
 
 ## 0.0.7
 - **FIXED**: Double quotes in generated index file
