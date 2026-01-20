@@ -6,7 +6,6 @@
 
 **Sheety Localization** - CLI utility for generating JSON localization files and barrel files (`index.js`/`index.ts`) from Google Sheets. Uses Google Sheets API and service account to get data.
 
----
 
 ## Features
 
@@ -19,7 +18,6 @@
 - Lazy loading of translations via `import()`.
 - Automatic formatting of TypeScript files (optional).
 
----
 
 ## TL;DR
 
@@ -40,6 +38,7 @@ sheety-localization \
   --output=src/locales \
   --prefix=app \
   --type=ts \
+  --ignore='help,temp-.*' \
   --author="Your Name <email>" \
   --comment="Generated from Google Sheets"
 ```
@@ -48,7 +47,6 @@ sheety-localization \
 
 6. Optionally automate translation formulas, conditional formatting, VS Code tasks, and CI pipelines.
 
----
 
 ## Requirements
 
@@ -57,7 +55,6 @@ sheety-localization \
 - Google Sheet with first line:
   `label | description | meta | en | ru | ... (other locales)`
 
----
 
 ## Installation
 
@@ -67,11 +64,10 @@ npm install -g sheety-localization
 
 > **Tip:** Do not publish `credentials.json` in public repositories.
 
----
 
 ## Usage
 
-### Command example
+### Basic command
 
 ```bash
 sheety-localization \
@@ -80,11 +76,12 @@ sheety-localization \
   --output=src/locales \
   --prefix=app \
   --type=ts \
+  --ignore='help,temp-.*' \
   --author="Your Name <email>" \
   --comment="Generated from Google Sheets"
 ```
 
-### Option descriptions
+### Option definitions
 
 - `--credentials`, `-c`: Path to service account JSON (defaults to `credentials.json` in CWD)
 - `--sheet`, `-s`: Google Spreadsheet ID (required)
@@ -96,22 +93,13 @@ sheety-localization \
 - `--author`: Author for metadata (stored under `@@author`)
 - `--comment`: Comment for metadata (stored under `@@comment`)
 - `--context`: Context/version for metadata (stored under `@@context`)
-- `--ignore`, `-i`: Comma-separated list of RegExp patterns to ignore sheets by title (e.g. `help,backend-.*,temp-.*`)
+- `--ignore`, `-i`: Comma-separated list of RegExp patterns to ignore sheets by title (e.g. `help,temp-.*`)
 - `--help`, `-h`: Show detailed help with all options
 
-### Intro your app
-
-```javascript
-import { loadLocales } from './locales/index.js';
-
-const locales = await loadLocales();
-```
-
----
 
 ## Integration
 
-1. **Prepare Google Sheet**
+### 1. Prepare Google Sheet
 
 - First line: `label | description | meta | en | ru | ...`
 - Each line is one localization row:
@@ -120,13 +108,13 @@ const locales = await loadLocales();
   - `meta` — optional JSON string with metadata for this label (merged into output).
   - `en`, `ru`, ... — columns for each locale with translation strings.
 
-1. **Create a service account and share the spreadsheet**
+### 2. Create a service account and share the spreadsheet
 
 - In Google Cloud Console, create a project, enable Sheets API.
 - Create a service account, download `credentials.json`.
 - Share the spreadsheet with the service account email.
 
-3. **Run the generator**
+### 3. Run the generator
 
 - In the terminal:
 
@@ -137,6 +125,7 @@ sheety-localization \
   --output=src/locales \
   --prefix=app \
   --type=ts \
+  --ignore='help,temp-.*' \
   --author="Your Name <email>" \
   --comment="Generated from Google Sheets"
 ```
@@ -145,16 +134,22 @@ sheety-localization \
 - `src/locales/app/app_en.json`, `src/locales/app/app_ru.json`, ...
 - `src/locales/index.ts` (or `index.js`)
 
----
 
-## Tips
+### 4. Add the generated locales to your app
+
+```javascript
+import { loadLocales } from './locales/index.js';
+const locales = await loadLocales();
+```
+
+
+## Tips & Best Practices
 
 - Store localization JSON files in git for auditing.
 - Don't publish `credentials.json` — use CI secrets.
 - Use `--author`, `--comment`, `--context` options for metadata.
 - To add new locales, update the table and regenerate the files.
 
----
 
 ## VS Code task example
 
@@ -165,7 +160,8 @@ Add to `.vscode/tasks.json`:
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "Generate Localization",
+      "label": "npm:sheety-localization:generate",
+      "detail": "Localization from Google Sheets",
       "type": "shell",
       "command": [
         "npm i -g sheety-localization"
@@ -175,6 +171,7 @@ Add to `.vscode/tasks.json`:
         "--output=src/locales",
         "--prefix=app",
         "--type=ts",
+        "--ignore='help,temp-.*",
         "--author="Your Name <email>"",
         "--comment="Generated from Google Sheets"",
       ],
@@ -185,17 +182,32 @@ Add to `.vscode/tasks.json`:
   ]
 }
 ```
+Run: Open Command Palette -> Tasks: Run Task -> npm:sheety-localization:generate.
 
----
 
-## Example: Google Automatic Translation Sheets
+## Example: Automatic Google Translate Formula
 
-In a cell for Russian (`E2`):
+If you want to auto-fill missing translations from English to Russian:
 
 ```plaintext
 =IF(ISBLANK(D2), "", GOOGLETRANSLATE(D2, "en", "ru"))
 ```
 
----
+- Place this formula in cell E2 (under the ru column).
+- Drag/fill down to apply to all rows.
+- Cells with empty en will remain blank; otherwise, English text will be machine-translated to Russian.
 
-**Generate localizations from Google Sheets quickly and easily!**
+
+## Example: Conditional Formatting Rules
+
+1.  Gray out machine translations
+
+    - Select entire column (e.g., column E for ru).
+    - Add a custom formula rule: =ISFORMULA(E2).
+    - Set fill color to light gray.
+
+2.  Highlight empty cells (missing translations)
+
+    - Select entire column (e.g., E).
+    - Add a custom formula rule: =E2="".
+    - Set fill color to red (or any noticeable color).
