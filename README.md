@@ -193,6 +193,10 @@ If you want to auto-fill missing translations from English to Russian:
 =IF(ISBLANK(D2), "", GOOGLETRANSLATE(D2, "en", "ru"))
 ```
 
+```plaintext
+=ЕСЛИ(ЕПУСТО(D2); ""; GOOGLETRANSLATE(D2; "ru"; "en"))
+```
+
 - Place this formula in cell E2 (under the ru column).
 - Drag/fill down to apply to all rows.
 - Cells with empty en will remain blank; otherwise, English text will be machine-translated to Russian.
@@ -202,12 +206,12 @@ If you want to auto-fill missing translations from English to Russian:
 
 1.  Gray out machine translations
 
-    - Select entire column (e.g., column E for ru).
-    - Add a custom formula rule: =ISFORMULA(E2).
+    - Select entire column (e.g., column E2:G for E-G colum's).
+    - Add a custom formula rule: `=И(ISFORMULA(E2); ДЛСТР(E2)>0)`.
     - Set fill color to light gray.
 
 2.  Highlight empty cells (missing translations)
 
-    - Select entire column (e.g., E).
-    - Add a custom formula rule: =E2="".
+    - Select entire column (e.g., E2:G for E-G colum's).
+    - Add a custom formula rule: `=И(ДЛСТР(СЖПРОБЕЛЫ($A2))>0; ДЛСТР(СЖПРОБЕЛЫ(E2))=0)`.
     - Set fill color to red (or any noticeable color).
