@@ -193,6 +193,8 @@ If you want to auto-fill missing translations from English to Russian:
 =IF(ISBLANK(D2), "", GOOGLETRANSLATE(D2, "en", "ru"))
 ```
 
+If you want to auto-fill missing translations from Russian to English and you have Russian localization of Google Sheets:
+
 ```plaintext
 =ЕСЛИ(ЕПУСТО(D2); ""; GOOGLETRANSLATE(D2; "ru"; "en"))
 ```
