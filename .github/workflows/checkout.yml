@@ -41,7 +41,7 @@ jobs:
       group: test-${{ github.workflow }}-${{ github.ref_name }}
       cancel-in-progress: true
     steps:
-      - name: 🚂 Get latest code
+      - name: Get latest code
         id: checkout
         uses: actions/checkout@v4
         with:
