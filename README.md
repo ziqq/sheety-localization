@@ -1,8 +1,8 @@
 # Sheety Localization
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js](https://img.shields.io/badge/Node.js-%23339933.svg?style=flat&logo=node.js&logoColor=white)](https://nodejs.org)
 [![NPM](https://img.shields.io/npm/v/sheety-localization.svg)](https://www.npmjs.com/package/sheety-localization)
+[![codecov](https://codecov.io/gh/ziqq/sheety-localization/graph/badge.svg?token=RYIQF8DZNM)](https://codecov.io/gh/ziqq/sheety-localization)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **Sheety Localization** - CLI utility for generating JSON localization files and barrel files (`index.js`/`index.ts`) from Google Sheets. Uses Google Sheets API and service account to get data.
 
@@ -254,22 +254,6 @@ Run: Open Command Palette -> Tasks: Run Task -> sheety-localization:generate.
 
 If you prefer the generated runtime over an i18next resource tree, the migration steps and API tradeoffs are described in `MIGRATION.md`.
 
-## Test and coverage scripts
-
-- `npm test`: build compiled JS artifacts and run all Jest suites.
-- `npm run test:source`: run mocked source-entry tests for spreadsheet parsing and source orchestration.
-- `npm run test:generated-runtime`: validate generated runtime source and tmp generated artifacts.
-- `npm run test:cli-result`: run live CLI result tests, including the minified CLI smoke test.
-- `npm run test:coverage`: generate the merged coverage report plus explicit tested-files summaries.
-- `npm run test:coverage:source`: generate the source-only coverage report.
-- `npm run test:coverage:generated-runtime`: generate the generated-runtime coverage report.
-- `npm run test:coverage:cli-result`: generate the live CLI coverage report.
-- `npm run coverage`: run all four coverage commands above.
-
-Notes:
-- `test:cli-result` and `test:coverage:cli-result` expect a working `example/credentials.json`, Google Sheets access, and network connectivity.
-- Per-suite coverage artifacts and Codecov flags are emitted as `merged`, `source`, `generated-runtime`, and `cli-result`.
-
 
 ## Example: Automatic Google Translate Formula
 
@@ -303,3 +287,21 @@ If you want to auto-fill missing translations from Russian to English and you ha
     - Select entire column (e.g., E2:G for E-G colum's).
     - Add a custom formula rule: `=И(ДЛСТР(СЖПРОБЕЛЫ($A2))>0; ДЛСТР(СЖПРОБЕЛЫ(E2))=0)`.
     - Set fill color to red (or any noticeable color).
+
+## Test and coverage scripts
+
+- `npm test`: build compiled JS artifacts and run all Jest suites.
+- `npm run test:source`: run mocked source-entry tests for spreadsheet parsing and source orchestration.
+- `npm run test:generated-runtime`: validate generated runtime source and tmp generated artifacts.
+- `npm run test:cli-result`: run live CLI result tests, including the minified CLI smoke test.
+- `npm run test:coverage`: generate the merged coverage report plus explicit tested-files summaries.
+- `npm run test:coverage:source`: generate the source-only coverage report.
+- `npm run test:coverage:generated-runtime`: generate the generated-runtime coverage report.
+- `npm run test:coverage:cli-result`: generate the live CLI coverage report.
+- `npm run coverage`: run all four coverage commands above.
+
+Notes:
+- `test:cli-result` and `test:coverage:cli-result` expect a working `example/credentials.json`, Google Sheets access, and network connectivity.
+- Per-suite coverage artifacts and Codecov flags are emitted as `merged`, `source`, `generated-runtime`, and `cli-result`.
+
+<img src="https://codecov.io/gh/ziqq/flutter_simple_country_picker/graphs/sunburst.svg?token=RYIQF8DZNM" width="375" />
