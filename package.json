@@ -1,7 +1,7 @@
 {
   "name": "sheety-localization",
   "description": "CLI to generate localization from Google Sheets",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "license": "MIT",
   "type": "module",
   "author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
@@ -19,21 +19,36 @@
     "sheety-localization": "bin/generate.min.js"
   },
   "scripts": {
-    "test": "echo \"No tests yet\"",
-    "build": "tsc && esbuild bin/generate.js --minify --format=esm --platform=node --target=node18 --outfile=bin/generate.min.js && rm -rf bin/generate.js"
+    "build:js": "tsc && rm -f bin/generator/types.js bin/generator/types.js.map",
+    "build": "npm run build:js && esbuild bin/generate.js --minify --format=esm --platform=node --target=node18 --outfile=bin/generate.min.js && rm -rf bin/generate.js",
+    "coverage:print": "node ./scripts/print-coverage-summary.mjs",
+    "tested:print": "node ./scripts/print-tested-files.mjs",
+    "test:jest": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+    "test": "npm run build:js && npm run test:jest",
+    "test:source": "npm run build:js && npm run test:jest -- test/generate.source.test.mjs",
+    "test:generated-runtime": "npm run build:js && npm run test:jest -- test/generate.generated-runtime.test.mjs",
+    "test:cli-result": "npm run build:js && npm run test:jest -- test/generate.cli-result.test.mjs",
+    "test:coverage": "npm run build:js && SHEETY_E2E_IN_PROCESS_COVERAGE=1 npm run test:jest -- --config jest.config.mjs --coverage && npm run coverage:print -- coverage/coverage-summary.json merged && npm run tested:print -- coverage/coverage-summary.json merged",
+    "test:coverage:source": "npm run build:js && npm run test:jest -- --config jest.config.source.mjs --coverage && npm run coverage:print -- coverage/source/coverage-summary.json source && npm run tested:print -- coverage/source/coverage-summary.json source",
+    "test:coverage:generated-runtime": "npm run build:js && npm run test:jest -- --config jest.config.generated-runtime.mjs --coverage && npm run coverage:print -- coverage/generated-runtime/coverage-summary.json generated-runtime && npm run tested:print -- coverage/generated-runtime/coverage-summary.json generated-runtime",
+    "test:coverage:cli-result": "npm run build:js && SHEETY_E2E_IN_PROCESS_COVERAGE=1 npm run test:jest -- --config jest.config.cli-result.mjs --coverage && npm run coverage:print -- coverage/cli-result/coverage-summary.json cli-result && npm run tested:print -- coverage/cli-result/coverage-summary.json cli-result",
+    "coverage": "npm run test:coverage && npm run test:coverage:source && npm run test:coverage:generated-runtime && npm run test:coverage:cli-result"
   },
   "dependencies": {
     "googleapis": "^170.1.0",
     "yargs": "^18.0.0"
   },
   "devDependencies": {
-    "@types/yargs": "^17.0.35",
     "@types/node": "^25.0.9",
-    "typescript": "^5.9.3",
-    "esbuild": "^0.27.2"
+    "@types/yargs": "^17.0.35",
+    "esbuild": "^0.27.2",
+    "jest": "^30.3.0",
+    "typescript": "^5.9.3"
   },
   "files": [
     "bin/",
+    "CHANGELOG.md",
+    "MIGRATION.md",
     "README.md",
     "package.json"
   ],

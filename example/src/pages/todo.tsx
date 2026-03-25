@@ -1,18 +1,19 @@
-import { For, createEffect, Component } from 'solid-js';
+import { For, createMemo, Component } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { Task } from '../types/index';
-import { Trans, useTransContext } from '@mbarzda/solid-i18next';
+import { useL10n } from '../contexts/l10n.context';
+import MainLayout from '../components/MainLayout';
 
 const TodoPage: Component = () => {
-  const [t] = useTransContext();
+  const { t } = useL10n();
 
   const [state, setState] = createStore<{
     tasks: Task[];
-    numberOfTasks: number;
   }>({
     tasks: [],
-    numberOfTasks: 0,
   });
+
+  const numberOfTasks = createMemo(() => state.tasks.length);
 
   const addTask = (text: any) => {
     setState('tasks', state.tasks.length, {
@@ -32,22 +33,13 @@ const TodoPage: Component = () => {
     );
   };
 
-  createEffect(() => {
-    setState('numberOfTasks', state.tasks.length);
-  });
-
   let input: HTMLInputElement | undefined;
 
   return (
-    <>
+    <MainLayout>
       <div class="l-container l-container--column l-container--full-height">
-        <h1 class="text-3xl font-bold underline">{t('todo:title')}</h1>
-        <span class="mb-8">{t('todo:subtitle', { numberOfTasks: state.numberOfTasks.toString() })}</span>
-        {/* <Trans
-          key="subtitle"
-          ns="todo"
-          values={{ numberOfTasks: state.numberOfTasks.toString() }}
-        /> */}
+        <h1 class="text-3xl font-bold underline">{t('todo', 'title')}</h1>
+        <span class="mb-8">{t('todo', 'subtitle', { numberOfTasks: String(numberOfTasks()) })}</span>
         <input name="task-input" class="c-input" ref={input} />
         <button
           class="c-button mt-5"
@@ -57,21 +49,20 @@ const TodoPage: Component = () => {
             input.value = '';
           }}
         >
-          Add Task
+          {t('todo', 'addButton')}
         </button>
         <For each={state.tasks}>
           {(task) => {
-            const { id, text } = task;
             return (
-              <div class="l-task-item l-task-item--{id}">
+              <div class={`l-task-item l-task-item--${task.id}`}>
                 <input type="checkbox" checked={task.completed} onChange={() => toggleTask(task.id)} />
-                <span>{text}</span>
+                <span>{task.text}</span>
               </div>
             );
           }}
         </For>
       </div>
-    </>
+    </MainLayout>
   );
 };
 

@@ -1,0 +1,48 @@
+coverage:
+  status:
+    default_rules:
+      flag_coverage_not_uploaded_behavior: include
+    project:
+      default:
+        target: auto
+        threshold: 1%
+      merged:
+        target: auto
+        threshold: 1%
+        flags:
+          - merged
+      source:
+        target: auto
+        threshold: 1%
+        flags:
+          - source
+      generated-runtime:
+        target: auto
+        threshold: 1%
+        flags:
+          - generated-runtime
+      cli-result:
+        target: auto
+        threshold: 1%
+        flags:
+          - cli-result
+    patch: off
+
+comment:
+  layout: reach,diff,flags,files
+  behavior: default
+  require_changes: false
+
+flags:
+  merged:
+    paths:
+      - src/
+  source:
+    paths:
+      - src/
+  generated-runtime:
+    paths:
+      - src/
+  cli-result:
+    paths:
+      - src/
