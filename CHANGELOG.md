@@ -1,3 +1,21 @@
+# Changelog
+
+## 0.2.0
+- **ADDED**: Generated runtime helpers for locale manifests, fallback resolution, bucket metadata, and typed placeholder-aware translation APIs.
+- **ADDED**: Synchronous preloaded runtime helpers (`createLoadedBucketFacade`, `createLoadedLocaleFacade`, `loadLocaleFacade`) and async bucket/locale namespace helpers.
+- **ADDED**: Jest coverage split into `source`, `generated-runtime`, `cli-result`, and merged reports with explicit tested-files summaries.
+- **ADDED**: CI and Codecov uploads for merged and per-suite coverage artifacts.
+- **ADDED**: `--include-empty` to make missing locale cells explicit by emitting empty-string translations and matching `@key` metadata only when requested.
+- **ADDED**: `--last-modified`, `--no-last-modified`, and `--modified` to control `@@last_modified` metadata in generated locale files.
+- **ADDED**: `MIGRATION.md` describing migration from previous `sheety-localization` releases to the generated runtime.
+- **CHANGED**: Generator logging now reports per-sheet fallback filling and per-bucket manifest summaries.
+- **CHANGED**: Generated `index.ts` and `index.js` now include doc comments for exported helpers.
+- **CHANGED**: Example app now documents both the generated Sheety runtime API path and the optional `solid-i18next` interoperability path.
+- **CHANGED**: Example app cleanup removed redundant helper exports and duplicated service metadata accessors.
+- **CHANGED**: README updated to document the expanded runtime API surface, coverage commands, and corrected VS Code task/examples.
+- **CHANGED**: Missing or empty locale cells are now omitted from generated output by default instead of being implicitly emitted as empty-string translations.
+- **FIXED**: Example app production build no longer depends on a missing changelog script or optional `terser`; it now builds with Vite's built-in esbuild minifier.
+
 ## 0.1.1
 - **CHANGED**: README.md
 

@@ -12,11 +12,15 @@
 - Get data from Google Sheets via service account.
 - Generate JSON files for each locale (e.g. `app_en.json`, `app_ru.json`).
 - Create barrel file (`index.js` or `index.ts`) for easy import of locales.
+- Generate locale manifest helpers: `supportedLocales`, `baseLocale`, `bucketNames`, `isLocale`, `loadLocale`, `loadBucket`.
 - Insert metadata: `@@locale`, `@@author`, `@@last_modified`, `@@comment`, `@@context`.
 - Flexible configuration of directory structure and prefixes via CLI options.
 - Support for global fields (`--meta`).
+- Explicit control over missing locale cells: omit them by default or emit empty-string translations with `--include-empty`.
+- Controllable `@@last_modified` metadata via `--last-modified`, `--no-last-modified`, and `--modified`.
 - Lazy loading of translations via `import()`.
-- Automatic formatting of TypeScript files (optional).
+- Automatic fallback from regional locales to base locales (for example `pt_BR -> pt`).
+- Remove stale generated JSON files when locales or sheets are deleted.
 
 
 ## TL;DR
@@ -38,6 +42,7 @@ sheety-localization \
   --output=src/locales \
   --prefix=app \
   --type=ts \
+  --no-last-modified \
   --ignore='help,temp-.*' \
   --author="Your Name <email>" \
   --comment="Generated from Google Sheets"
@@ -76,6 +81,7 @@ sheety-localization \
   --output=src/locales \
   --prefix=app \
   --type=ts \
+  --no-last-modified \
   --ignore='help,temp-.*' \
   --author="Your Name <email>" \
   --comment="Generated from Google Sheets"
@@ -83,18 +89,21 @@ sheety-localization \
 
 ### Option definitions
 
-- `--credentials`, `-c`: Path to service account JSON (defaults to `credentials.json` in CWD)
-- `--sheet`, `-s`: Google Spreadsheet ID (required)
-- `--output`, `-o`: Root folder for locales (`src/locales` by default)
-- `--prefix`, `-p`: Prefix for files (`app` → `app_en.json`, `app_ru.json`, ...)
-- `--meta`, `-m`: JSON string with global fields merged into every JSON file (default `{}`)
+- `--credentials`: Path to service account JSON (required)
+- `--sheet`: Google Spreadsheet ID (required)
+- `--output`: Root folder for locales (`src/locales` by default)
+- `--prefix`: Prefix for files (`app` → `app_en.json`, `app_ru.json`, ...)
+- `--meta`: JSON string with global fields merged into every JSON file
 - `--meta-file`: Path to JSON file with global meta (has priority over `--meta`)
-- `--type`, `-t`: Type of barrel file (`js` or `ts`)
+- `--type`: Type of barrel file (`js` or `ts`, defaults to `ts`)
 - `--author`: Author for metadata (stored under `@@author`)
 - `--comment`: Comment for metadata (stored under `@@comment`)
 - `--context`: Context/version for metadata (stored under `@@context`)
-- `--ignore`, `-i`: Comma-separated list of RegExp patterns to ignore sheets by title (e.g. `help,temp-.*`)
-- `--help`, `-h`: Show detailed help with all options
+- `--modified`: Explicit ISO timestamp for `@@last_modified` when enabled
+- `--last-modified` / `--no-last-modified`: Enable or disable `@@last_modified` metadata (enabled by default)
+- `--include-empty`: Emit empty-string translations and `@key` metadata for missing locale cells instead of omitting them
+- `--ignore`: Comma-separated list of RegExp patterns to ignore sheets by title (e.g. `help,temp-.*`)
+- `--help`: Show detailed help with all options
 
 
 ## Integration
@@ -107,6 +116,8 @@ sheety-localization \
   - `description` — optional description for context (not used in output files).
   - `meta` — optional JSON string with metadata for this label (merged into output).
   - `en`, `ru`, ... — columns for each locale with translation strings.
+- Missing locale cells are omitted from generated output by default: no translation key and no `@key` metadata entry are emitted for that locale.
+- Use `--include-empty` if you want missing locale cells to become empty-string translations with matching `@key` metadata entries.
 
 ### 2. Create a service account and share the spreadsheet
 
@@ -125,6 +136,7 @@ sheety-localization \
   --output=src/locales \
   --prefix=app \
   --type=ts \
+  --no-last-modified \
   --ignore='help,temp-.*' \
   --author="Your Name <email>" \
   --comment="Generated from Google Sheets"
@@ -137,9 +149,66 @@ sheety-localization \
 
 ### 4. Add the generated locales to your app
 
+If you are upgrading from an older `sheety-localization` release, see `MIGRATION.md` for the new runtime API and the compatibility path that keeps `loadLocales()` working.
+
 ```javascript
-import { loadLocales } from './locales/index.js';
+import { baseLocale, bucketNames, loadLocales, supportedLocales } from './locales/index.js';
+
 const locales = await loadLocales();
+
+console.log(baseLocale); // e.g. 'en'
+console.log(supportedLocales); // e.g. ['en', 'ru']
+console.log(bucketNames); // e.g. ['app', 'errors']
+```
+
+Generated index helpers:
+- `supportedLocales`: all locales found across generated buckets.
+- `baseLocale`: `en` when present, otherwise the first generated locale.
+- `bucketNames`: generated namespace list based on sheet names.
+- `bucketLocales`: locales available per generated bucket.
+- `bucketKeys`: generated translation keys per bucket.
+- `messageMeta`: generated metadata map derived from `@key` entries.
+- `locales`: raw lazy loader table used by generated helpers.
+- `normalizeLocale(locale)`: normalize locale separators before resolution.
+- `isLocale(locale)`: check whether a normalized locale is present in generated output.
+- `isBucket(bucket)`: check whether a bucket exists.
+- `isMessageKey(bucket, key)`: check whether a key belongs to a generated bucket.
+- `getMessageMeta(bucket, key)`: read metadata for one generated message.
+- `getLocaleChain(locale)`: inspect the fallback chain used by resolution helpers.
+- `resolveLocale(locale)`: normalize and resolve locale with regional fallback.
+- `resolveBucketLocale(bucket, locale)`: resolve locale against a specific bucket.
+- `loadBucket(bucket, locale)`: load a single generated namespace.
+- `loadLocale(locale)`: load all buckets for one locale with fallback.
+- `formatMessage(template, params)`: format an already loaded template string.
+- `createLoadedBucketFacade(bucket, dictionary)`: create a synchronous bucket runtime helper from a preloaded dictionary.
+- `createLoadedLocaleFacade(dictionaries)`: create a synchronous runtime object for a preloaded locale.
+- `loadLocaleFacade(locale)`: preload all buckets for a locale and return a synchronous runtime object.
+- `translateLoaded(bucket, key, dictionary, params)`: format a message from an already loaded dictionary.
+- `translate(bucket, key, locale, params)`: load and format one message using generated placeholder types in TypeScript.
+- `createBucketTranslator(bucket, locale)`: create a bucket-scoped translation helper.
+- `createBucketFacade(bucket, locale)`: create a Dart-like namespace helper with one async method per message key.
+- `createLocaleFacade(locale)`: create async runtime helpers for all generated buckets at once.
+
+Example with a preloaded runtime object:
+
+```ts
+import { loadLocaleFacade } from './locales/index.js';
+
+const l10n = await loadLocaleFacade('ru');
+
+l10n.app.title();
+l10n.todo.subtitle({ numberOfTasks: '5' });
+```
+
+Example with lazy async runtime helpers:
+
+```ts
+import { createLocaleFacade } from './locales/index.js';
+
+const l10n = createLocaleFacade('ru');
+
+await l10n.app.title();
+await l10n.todo.subtitle({ numberOfTasks: '5' });
 ```
 
 
@@ -160,20 +229,19 @@ Add to `.vscode/tasks.json`:
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "npm:sheety-localization:generate",
+      "label": "sheety-localization:generate",
       "detail": "Localization from Google Sheets",
       "type": "shell",
-      "command": [
-        "npm i -g sheety-localization"
-        "sheety-localization",
+      "command": "sheety-localization",
+      "args": [
         "--credentials=./credentials.json",
         "--sheet=<SPREADSHEET_ID>",
         "--output=src/locales",
         "--prefix=app",
         "--type=ts",
-        "--ignore='help,temp-.*",
-        "--author="Your Name <email>"",
-        "--comment="Generated from Google Sheets"",
+        "--ignore=help,temp-.*",
+        "--author=Your Name <email>",
+        "--comment=Generated from Google Sheets"
       ],
       "options": {
         "cwd": "${workspaceFolder}"
@@ -182,7 +250,25 @@ Add to `.vscode/tasks.json`:
   ]
 }
 ```
-Run: Open Command Palette -> Tasks: Run Task -> npm:sheety-localization:generate.
+Run: Open Command Palette -> Tasks: Run Task -> sheety-localization:generate.
+
+If you prefer the generated runtime over an i18next resource tree, the migration steps and API tradeoffs are described in `MIGRATION.md`.
+
+## Test and coverage scripts
+
+- `npm test`: build compiled JS artifacts and run all Jest suites.
+- `npm run test:source`: run mocked source-entry tests for spreadsheet parsing and source orchestration.
+- `npm run test:generated-runtime`: validate generated runtime source and tmp generated artifacts.
+- `npm run test:cli-result`: run live CLI result tests, including the minified CLI smoke test.
+- `npm run test:coverage`: generate the merged coverage report plus explicit tested-files summaries.
+- `npm run test:coverage:source`: generate the source-only coverage report.
+- `npm run test:coverage:generated-runtime`: generate the generated-runtime coverage report.
+- `npm run test:coverage:cli-result`: generate the live CLI coverage report.
+- `npm run coverage`: run all four coverage commands above.
+
+Notes:
+- `test:cli-result` and `test:coverage:cli-result` expect a working `example/credentials.json`, Google Sheets access, and network connectivity.
+- Per-suite coverage artifacts and Codecov flags are emitted as `merged`, `source`, `generated-runtime`, and `cli-result`.
 
 
 ## Example: Automatic Google Translate Formula
@@ -199,9 +285,9 @@ If you want to auto-fill missing translations from Russian to English and you ha
 =ЕСЛИ(ЕПУСТО(D2); ""; GOOGLETRANSLATE(D2; "ru"; "en"))
 ```
 
-- Place this formula in cell E2 (under the ru column).
+- Place this formula in cell E2 (under the `en` column if `D` is `ru`).
 - Drag/fill down to apply to all rows.
-- Cells with empty en will remain blank; otherwise, English text will be machine-translated to Russian.
+- Cells with empty `ru` values will remain blank; otherwise, Russian text will be machine-translated to English.
 
 
 ## Example: Conditional Formatting Rules

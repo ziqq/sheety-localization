@@ -1,7 +1,7 @@
 {
   "@@locale": "ru",
   "@@author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
-  "@@last_modified": "2025-12-29T06:24:49.997Z",
+  "@@last_modified": "2026-03-19T10:27:49.725Z",
   "@@comment": "Generated from Google Sheets",
   "@@context": "From Google Sheets",
   "bandwidthLimitExceededError": "Запрос превысил лимит пропускной способности.",
@@ -24,5 +24,5 @@
   "unknownError": "Произошла неизвестная ошибка, пожалуйста, попробуйте позже.",
   "timeoutError": "Запрос не удался, пожалуйста, попробуйте позже.",
   "networkError": "Не удалось отправить запрос из-за сетевой ошибки. Пожалуйста, проверьте подключение к интернету.",
-  "defaultError": "При обработке запроса произошла ошибка."
+  "defaultError": "Произошла ошибка при обработке запроса."
 }

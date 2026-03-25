@@ -1,57 +1,40 @@
-import { createContext, ParentComponent, Show, useContext } from 'solid-js';
-import type { Locales } from '../i18n/i18n-types';
-import { AVAILABLE_LOCALES, i18nService, LANGUAGE_NAMES } from '../services/i18n.service';
+import { useTransContext } from '@mbarzda/solid-i18next';
+import { createContext, createSignal, type Accessor, type ParentComponent, useContext } from 'solid-js';
+import { AVAILABLE_I18N_LOCALES, I18N_LANGUAGE_NAMES, i18nService, type I18nLocale } from '../services/i18n.service';
+
+type UseTransContextResult = ReturnType<typeof useTransContext>;
+export type I18nTranslateFn = UseTransContextResult[0];
 
 interface I18nContextType {
-  // Reactive getters
-  locale: () => Locales;
-  t: () => any; // Используем any чтобы избежать проблем с типами
-  isReady: () => boolean;
-
-  // Static data
-  availableLocales: Locales[];
-  languageNames: Record<string, string>;
-
-  // Methods
-  changeLocale: (newLocale: Locales) => boolean;
-  resetLocale: () => boolean;
+  locale: Accessor<I18nLocale>;
+  t: I18nTranslateFn;
+  availableLocales: I18nLocale[];
+  languageNames: Record<I18nLocale, string>;
+  changeLocale: (newLocale: I18nLocale) => boolean;
   getLanguageName: (locale: string) => string;
 }
 
 const I18nContext = createContext<I18nContextType>();
 
 export const I18nProvider: ParentComponent = (props) => {
+  const [t, { changeLanguage }] = useTransContext();
+  const [locale, setLocale] = createSignal<I18nLocale>(i18nService.getLocale());
+
   const contextValue: I18nContextType = {
-    // Reactive getters from service
-    locale: i18nService.locale,
-    t: i18nService.t,
-    isReady: i18nService.isReady,
-
-    // Static data
-    availableLocales: AVAILABLE_LOCALES,
-    languageNames: LANGUAGE_NAMES,
-
-    // Methods
-    changeLocale: i18nService.changeLocale,
-    resetLocale: i18nService.resetLocale,
+    locale,
+    t,
+    availableLocales: AVAILABLE_I18N_LOCALES,
+    languageNames: I18N_LANGUAGE_NAMES,
+    changeLocale: (newLocale) => {
+      const resolvedLocale = i18nService.normalizeLocale(newLocale);
+      setLocale(resolvedLocale);
+      void changeLanguage(resolvedLocale);
+      return true;
+    },
     getLanguageName: i18nService.getLanguageName,
   };
 
-  return (
-    <I18nContext.Provider value={contextValue}>
-      <Show
-        when={i18nService.isReady()}
-        fallback={
-          <div class="app-loading">
-            <div class="loading-spinner"></div>
-            <p>Loading...</p>
-          </div>
-        }
-      >
-        {props.children}
-      </Show>
-    </I18nContext.Provider>
-  );
+  return <I18nContext.Provider value={contextValue}>{props.children}</I18nContext.Provider>;
 };
 
 export const useI18n = (): I18nContextType => {
@@ -59,24 +42,6 @@ export const useI18n = (): I18nContextType => {
   if (!context) {
     throw new Error('useI18n must be used within an I18nProvider');
   }
+
   return context;
 };
-
-// Convenience hooks
-export const useLocale = () => {
-  const { locale } = useI18n();
-  return locale;
-};
-
-export const useTranslations = () => {
-  const { t } = useI18n();
-  return t;
-};
-
-export const useChangeLocale = () => {
-  const { changeLocale } = useI18n();
-  return changeLocale;
-};
-
-// Legacy compatibility
-export const useTranslation = useTranslations;

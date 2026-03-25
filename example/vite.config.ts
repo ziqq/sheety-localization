@@ -116,17 +116,7 @@ export default defineConfig(({ mode }) => {
     build: {
       target: 'esnext',
       sourcemap: true, // Enable source maps for production
-      minify: 'terser',
-      terserOptions: {
-        format: {
-          comments: false, // Remove all comments including license comments
-        },
-        compress: {
-          drop_console: mode === 'production', // Remove console.log in production
-          drop_debugger: true, // Remove debugger statements
-          pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : [], // Remove specific console methods
-        },
-      },
+      minify: 'esbuild',
       rollupOptions: {
         output: {
           manualChunks: {
@@ -143,6 +133,10 @@ export default defineConfig(({ mode }) => {
     },
     worker: {
       format: 'es',
+    },
+    esbuild: {
+      legalComments: 'none',
+      drop: mode === 'production' ? ['console', 'debugger'] : ['debugger'],
     },
     css: {
       // devSourcemap: true,

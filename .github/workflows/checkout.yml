@@ -12,30 +12,33 @@ on:
       - 'feature/**'
       - 'bugfix/**'
     paths:
-      - 'package.json'
-      - 'package-lock.json'
       - '.github/**.yaml'
       - '.github/**.yml'
+      - 'codecov.yml'
+      - 'jest.config*.mjs'
+      - 'package-lock.json'
+      - 'package.json'
+      - 'tsconfig.json'
       - 'bin/**.js'
-      - 'test/**.js'
+      - 'src/**'
+      - 'test/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  checkout:
-    name: 'Checkout'
+  test:
+    name: 'Test and Coverage'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     defaults:
       run:
         working-directory: ./
-    env:
-      pub-cache-name: pub
-      threshold: 50
     timeout-minutes: 15
     concurrency:
-      group: checkout-${{ github.workflow }}-${{ github.ref_name }}
+      group: test-${{ github.workflow }}-${{ github.ref_name }}
       cancel-in-progress: true
     steps:
       - name: 🚂 Get latest code
@@ -44,28 +47,89 @@ jobs:
         with:
           sparse-checkout: |
             .github
-            .npmignore
+            .gitignore
+            codecov.yml
             package.json
+            package-lock.json
+            tsconfig.json
             bin
+            src
+            test
             example
             CHANGELOG.md
+            MIGRATION.md
+            README.md
 
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22.x
+          node-version: 20.x
+          cache: npm
 
       - name: Install Dependencies
-        run: npm install
-
-      - name: Run Tests
-        run: xvfb-run -a npm test
-        if: runner.os == 'Linux'
+        run: npm ci
 
       - name: Run Tests
         run: npm test
-        if: runner.os != 'Linux'
 
-      # - name: Lint Code
-      #   run: |
-      #     npm run lint
+      - name: Generate Coverage Reports
+        run: npm run coverage
+
+      - name: Upload Coverage Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sheety-localization-coverage
+          path: |
+            coverage/lcov.info
+            coverage/coverage-summary.json
+            coverage/source/lcov.info
+            coverage/source/coverage-summary.json
+            coverage/generated-runtime/lcov.info
+            coverage/generated-runtime/coverage-summary.json
+            coverage/cli-result/lcov.info
+            coverage/cli-result/coverage-summary.json
+          if-no-files-found: error
+
+      - name: Upload Merged Coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/lcov.info
+          flags: merged
+          name: sheety-localization-merged
+          fail_ci_if_error: true
+          disable_search: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+
+      - name: Upload Source Coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/source/lcov.info
+          flags: source
+          name: sheety-localization-source
+          fail_ci_if_error: true
+          disable_search: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+
+      - name: Upload Generated Runtime Coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/generated-runtime/lcov.info
+          flags: generated-runtime
+          name: sheety-localization-generated-runtime
+          fail_ci_if_error: true
+          disable_search: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+
+      - name: Upload CLI Result Coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/cli-result/lcov.info
+          flags: cli-result
+          name: sheety-localization-cli-result
+          fail_ci_if_error: true
+          disable_search: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true

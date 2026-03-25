@@ -1,20 +1,18 @@
 import { createSignal, For, onCleanup, onMount, Show } from 'solid-js';
 import { Portal } from 'solid-js/web';
-import { useTransContext } from '@mbarzda/solid-i18next';
 import { useI18n } from '../contexts/i18n.context';
-import type { Locales } from '../i18n/i18n-types';
+import { useL10n } from '../contexts/l10n.context';
+import type { SupportedLocale } from '../locales/index.js';
 import { LanguageIcon } from './Icon';
-import i18next from 'i18next';
 
-export function LanguageSwitcher() {
-  const { locale, changeLocale, availableLocales, getLanguageName, t } = useI18n();
+export function LanguageSwitcherL10n() {
+  const { locale, changeLocale, availableLocales, getLanguageName, isLoading, t } = useL10n();
   const [isOpen, setIsOpen] = createSignal(false);
   const [triggerRef, setTriggerRef] = createSignal<HTMLButtonElement>();
   const [dropdownRef, setDropdownRef] = createSignal<HTMLDivElement>();
 
-  const handleLanguageChange = (newLocale: Locales) => {
-    console.log('🌐 Language selector: Changing locale to', newLocale);
-    const success = changeLocale(newLocale);
+  const handleLanguageChange = async (newLocale: SupportedLocale) => {
+    const success = await changeLocale(newLocale);
     if (success) {
       setIsOpen(false);
       console.log('🌐 Language selector: Locale changed successfully');
@@ -92,6 +90,10 @@ export function LanguageSwitcher() {
         ref={setTriggerRef}
         class="language-switcher-trigger"
         onClick={() => {
+          if (isLoading()) {
+            return;
+          }
+
           const newState = !isOpen();
           setIsOpen(newState);
           if (newState) {
@@ -104,6 +106,7 @@ export function LanguageSwitcher() {
         aria-label={getCurrentLanguageName()}
         aria-expanded={isOpen()}
         aria-haspopup="menu"
+        aria-busy={isLoading()}
       >
         <LanguageIcon size={18} aria-hidden="true" />
         <span class="language-switcher-current">{getCurrentLanguageName()}</span>
@@ -124,7 +127,7 @@ export function LanguageSwitcher() {
             }}
             class="language-switcher-dropdown language-switcher-dropdown--portal"
             role="menu"
-            aria-label="Select Language"
+            aria-label={t('app', 'language')}
             style={{ position: 'fixed', top: '0px', left: '0px' }}
           >
             <For each={availableLocales}>
@@ -132,9 +135,12 @@ export function LanguageSwitcher() {
                 <button
                   class={`language-switcher-option ${locale() === loc ? 'language-switcher-option--active' : ''}`}
                   role="menuitem"
-                  onClick={() => handleLanguageChange(loc)}
+                  onClick={() => {
+                    void handleLanguageChange(loc);
+                  }}
                   aria-label={getLanguageName(loc)}
                   aria-current={locale() === loc ? 'true' : 'false'}
+                  disabled={isLoading()}
                 >
                   <span class="language-switcher-option-code">{loc.toUpperCase()}</span>
                   <span class="language-switcher-option-name">{getLanguageName(loc)}</span>
@@ -153,24 +159,26 @@ export function LanguageSwitcher() {
   );
 }
 
-export const LanguageSwitcher$Sheety = () => {
-  const [t, { changeLanguage }] = useTransContext();
+export const LanguageSwitcherI18n = () => {
+  const { locale, changeLocale, availableLocales, getLanguageName } = useI18n();
 
-  function handleLanguageChange(event: { target: { value: string } }) {
-    changeLanguage(event.target.value);
+  function handleLanguageChange(event: Event) {
+    const target = event.currentTarget as HTMLSelectElement;
+    changeLocale(target.value as SupportedLocale);
   }
 
   return (
-    <div class="flex items-center">
-      <h5>Sheety language select:</h5>
+    <div class="flex items-center gap-2">
+      <span class="text-sm text-slate-500">solid-i18next</span>
       <select
-        name="language-switcher"
+        name="language-switcher-i18n"
         class="c-language-switcher mr-5"
-        value={i18next.language}
+        value={locale()}
         onChange={handleLanguageChange}
       >
-        <option value="en">{t('englishLabel')}</option>
-        <option value="ru">{t('russianLabel')}</option>
+        <For each={availableLocales}>
+          {(currentLocale) => <option value={currentLocale}>{getLanguageName(currentLocale)}</option>}
+        </For>
       </select>
     </div>
   );
