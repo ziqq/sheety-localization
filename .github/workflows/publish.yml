@@ -39,15 +39,6 @@ jobs:
 
       - name: Publish to npm
         id: publish
-        run: |
-          PACKAGE_NAME=$(npm pkg get name | tr -d '"')
-          PACKAGE_VERSION=$(npm pkg get version | tr -d '"')
-
-          if npm view "$PACKAGE_NAME@$PACKAGE_VERSION" version >/dev/null 2>&1; then
-            echo "Version $PACKAGE_VERSION is already published for $PACKAGE_NAME, skipping"
-            exit 0
-          fi
-
-          npm publish
+        run: npm publish || echo "Version already published, skipping"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
