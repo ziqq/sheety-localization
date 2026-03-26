@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.2.1
+- **CHANGED**: Documentation
+
 ## 0.2.0
 - **ADDED**: Generated runtime helpers for locale manifests, fallback resolution, bucket metadata, and typed placeholder-aware translation APIs.
 - **ADDED**: Synchronous preloaded runtime helpers (`createLoadedBucketFacade`, `createLoadedLocaleFacade`, `loadLocaleFacade`) and async bucket/locale namespace helpers.

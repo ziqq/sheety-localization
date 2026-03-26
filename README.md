@@ -4,18 +4,18 @@
 [![codecov](https://codecov.io/gh/ziqq/sheety-localization/graph/badge.svg?token=RYIQF8DZNM)](https://codecov.io/gh/ziqq/sheety-localization)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Sheety Localization** - CLI utility for generating JSON localization files and barrel files (`index.js`/`index.ts`) from Google Sheets. Uses Google Sheets API and service account to get data.
+**Sheety Localization** is a CLI utility that reads localization tables from Google Sheets and generates per-bucket locale JSON files plus a generated runtime entrypoint (`index.js` or `index.ts`).
 
 
 ## Features
 
 - Get data from Google Sheets via service account.
-- Generate JSON files for each locale (e.g. `app_en.json`, `app_ru.json`).
-- Create barrel file (`index.js` or `index.ts`) for easy import of locales.
-- Generate locale manifest helpers: `supportedLocales`, `baseLocale`, `bucketNames`, `isLocale`, `loadLocale`, `loadBucket`.
+- Generate JSON files for each locale inside each generated bucket (e.g. `app/app_en.json`, `app/app_ru.json`).
+- Create a generated runtime entrypoint (`index.js` or `index.ts`) for easy imports.
+- Generate locale manifest helpers, fallback resolution helpers, bucket loaders, and translation facades.
 - Insert metadata: `@@locale`, `@@author`, `@@last_modified`, `@@comment`, `@@context`.
 - Flexible configuration of directory structure and prefixes via CLI options.
-- Support for global fields (`--meta`).
+- Support for global fields via `--meta` or `--meta-file`.
 - Explicit control over missing locale cells: omit them by default or emit empty-string translations with `--include-empty`.
 - Controllable `@@last_modified` metadata via `--last-modified`, `--no-last-modified`, and `--modified`.
 - Lazy loading of translations via `import()`.
@@ -25,9 +25,9 @@
 
 ## TL;DR
 
-1. Create a Google Sheet with columns: `label | description | meta | en | ru | ...`.
+1. Create a Google spreadsheet where each sheet/tab becomes one generated bucket, with columns: `label | description | meta | en | ru | ...`.
 2. Get a Google Cloud service account, enable Sheets API, share the spreadsheet.
-3. Install dependencies:
+3. Install the CLI globally:
 
 ```bash
 npm install -g sheety-localization
@@ -48,7 +48,7 @@ sheety-localization \
   --comment="Generated from Google Sheets"
 ```
 
-5. Import the barrel file (`src/locales/index.ts`) into the project.
+5. Import the generated runtime entrypoint (`src/locales/index.ts`) into the project.
 
 6. Optionally automate translation formulas, conditional formatting, VS Code tasks, and CI pipelines.
 
@@ -57,7 +57,8 @@ sheety-localization \
 
 - Node.js >= 18
 - Google Service Account with access to Google Sheets API
-- Google Sheet with first line:
+- Google Sheet where each sheet/tab becomes one generated bucket/namespace
+- Header row in each sheet/tab:
   `label | description | meta | en | ru | ... (other locales)`
 
 
@@ -90,7 +91,7 @@ sheety-localization \
 ### Option definitions
 
 - `--credentials`: Path to service account JSON (required)
-- `--sheet`: Google Spreadsheet ID (required)
+- `--sheet`: Google Spreadsheet ID (required, the value between `/d/` and `/edit` in the spreadsheet URL)
 - `--output`: Root folder for locales (`src/locales` by default)
 - `--prefix`: Prefix for files (`app` → `app_en.json`, `app_ru.json`, ...)
 - `--meta`: JSON string with global fields merged into every JSON file
@@ -110,12 +111,14 @@ sheety-localization \
 
 ### 1. Prepare Google Sheet
 
-- First line: `label | description | meta | en | ru | ...`
-- Each line is one localization row:
-  - `label` — key for the localization string.
-  - `description` — optional description for context (not used in output files).
-  - `meta` — optional JSON string with metadata for this label (merged into output).
-  - `en`, `ru`, ... — columns for each locale with translation strings.
+- Each sheet/tab in the spreadsheet becomes one generated bucket or namespace.
+- The first row in each sheet/tab must be:
+  `label | description | meta | en | ru | ...`
+- Each next row describes one localized message:
+  - `label` — translation key.
+  - `description` — optional human-readable note for translators.
+  - `meta` — optional JSON metadata for the message, for example placeholder definitions.
+  - `en`, `ru`, ... — one column per locale.
 - Missing locale cells are omitted from generated output by default: no translation key and no `@key` metadata entry are emitted for that locale.
 - Use `--include-empty` if you want missing locale cells to become empty-string translations with matching `@key` metadata entries.
 
@@ -142,9 +145,20 @@ sheety-localization \
   --comment="Generated from Google Sheets"
 ```
 
-- Will generate:
-- `src/locales/app/app_en.json`, `src/locales/app/app_ru.json`, ...
-- `src/locales/index.ts` (or `index.js`)
+This generates, for example:
+
+```text
+src/locales/
+  index.ts
+  app/
+    app_en.json
+    app_ru.json
+  errors/
+    app_en.json
+    app_ru.json
+```
+
+If you generate JavaScript output instead, the entrypoint will be `src/locales/index.js`.
 
 
 ### 4. Add the generated locales to your app
@@ -161,33 +175,21 @@ console.log(supportedLocales); // e.g. ['en', 'ru']
 console.log(bucketNames); // e.g. ['app', 'errors']
 ```
 
-Generated index helpers:
-- `supportedLocales`: all locales found across generated buckets.
-- `baseLocale`: `en` when present, otherwise the first generated locale.
-- `bucketNames`: generated namespace list based on sheet names.
-- `bucketLocales`: locales available per generated bucket.
-- `bucketKeys`: generated translation keys per bucket.
-- `messageMeta`: generated metadata map derived from `@key` entries.
-- `locales`: raw lazy loader table used by generated helpers.
-- `normalizeLocale(locale)`: normalize locale separators before resolution.
-- `isLocale(locale)`: check whether a normalized locale is present in generated output.
-- `isBucket(bucket)`: check whether a bucket exists.
-- `isMessageKey(bucket, key)`: check whether a key belongs to a generated bucket.
-- `getMessageMeta(bucket, key)`: read metadata for one generated message.
-- `getLocaleChain(locale)`: inspect the fallback chain used by resolution helpers.
-- `resolveLocale(locale)`: normalize and resolve locale with regional fallback.
-- `resolveBucketLocale(bucket, locale)`: resolve locale against a specific bucket.
-- `loadBucket(bucket, locale)`: load a single generated namespace.
-- `loadLocale(locale)`: load all buckets for one locale with fallback.
-- `formatMessage(template, params)`: format an already loaded template string.
-- `createLoadedBucketFacade(bucket, dictionary)`: create a synchronous bucket runtime helper from a preloaded dictionary.
-- `createLoadedLocaleFacade(dictionaries)`: create a synchronous runtime object for a preloaded locale.
-- `loadLocaleFacade(locale)`: preload all buckets for a locale and return a synchronous runtime object.
-- `translateLoaded(bucket, key, dictionary, params)`: format a message from an already loaded dictionary.
-- `translate(bucket, key, locale, params)`: load and format one message using generated placeholder types in TypeScript.
-- `createBucketTranslator(bucket, locale)`: create a bucket-scoped translation helper.
-- `createBucketFacade(bucket, locale)`: create a Dart-like namespace helper with one async method per message key.
-- `createLocaleFacade(locale)`: create async runtime helpers for all generated buckets at once.
+The generated index file exposes manifest data, resolution helpers, loaders, formatters, and runtime facades.
+
+Generated index helpers are grouped into a few categories:
+
+- Manifest data:
+  - `supportedLocales`, `baseLocale`, `bucketNames`, `bucketLocales`, `bucketKeys`, `messageMeta`, `locales`
+- Validation and resolution:
+  - `normalizeLocale(locale)`, `isLocale(locale)`, `isBucket(bucket)`, `isMessageKey(bucket, key)`
+  - `getMessageMeta(bucket, key)`, `getLocaleChain(locale)`, `resolveLocale(locale)`, `resolveBucketLocale(bucket, locale)`
+- Loading and formatting:
+  - `loadBucket(bucket, locale)`, `loadLocale(locale)`, `formatMessage(template, params)`
+  - `translateLoaded(bucket, key, dictionary, params)`, `translate(bucket, key, locale, params)`
+- Runtime facades:
+  - `createLoadedBucketFacade(bucket, dictionary)`, `createLoadedLocaleFacade(dictionaries)`, `loadLocaleFacade(locale)`
+  - `createBucketTranslator(bucket, locale)`, `createBucketFacade(bucket, locale)`, `createLocaleFacade(locale)`
 
 Example with a preloaded runtime object:
 
@@ -218,6 +220,7 @@ await l10n.todo.subtitle({ numberOfTasks: '5' });
 - Don't publish `credentials.json` — use CI secrets.
 - Use `--author`, `--comment`, `--context` options for metadata.
 - To add new locales, update the table and regenerate the files.
+- Keep one spreadsheet tab per namespace or bucket to match the generated folder structure.
 
 
 ## VS Code task example
@@ -250,43 +253,49 @@ Add to `.vscode/tasks.json`:
   ]
 }
 ```
-Run: Open Command Palette -> Tasks: Run Task -> sheety-localization:generate.
+
+Run it from the Command Palette via `Tasks: Run Task` -> `sheety-localization:generate`.
 
 If you prefer the generated runtime over an i18next resource tree, the migration steps and API tradeoffs are described in `MIGRATION.md`.
 
 
-## Example: Automatic Google Translate Formula
+## Google Sheets Tips
 
-If you want to auto-fill missing translations from English to Russian:
+### Automatic Google Translate Formula
+
+If you want to auto-fill missing translations from English to Russian, and column `D` contains English while column `E` contains Russian:
 
 ```plaintext
 =IF(ISBLANK(D2), "", GOOGLETRANSLATE(D2, "en", "ru"))
 ```
 
-If you want to auto-fill missing translations from Russian to English and you have Russian localization of Google Sheets:
+Put this formula in `E2`, then fill it down the column.
+
+If you use a localized Google Sheets UI, function names and separators may differ. For example, in a Russian UI, translating from Russian in `D2` to English in `E2` may look like this:
 
 ```plaintext
 =ЕСЛИ(ЕПУСТО(D2); ""; GOOGLETRANSLATE(D2; "ru"; "en"))
 ```
 
-- Place this formula in cell E2 (under the `en` column if `D` is `ru`).
-- Drag/fill down to apply to all rows.
-- Cells with empty `ru` values will remain blank; otherwise, Russian text will be machine-translated to English.
+- Adjust source and target locale codes to match your sheet.
+- Keep in mind that machine-translated cells should still be reviewed manually.
 
 
-## Example: Conditional Formatting Rules
+### Conditional Formatting Rules
 
-1.  Gray out machine translations
+1. Gray out machine-translated cells
 
-    - Select entire column (e.g., column E2:G for E-G colum's).
-    - Add a custom formula rule: `=И(ISFORMULA(E2); ДЛСТР(E2)>0)`.
-    - Set fill color to light gray.
+   - Select the target translation range, for example `E2:G`.
+   - Add a custom formula rule such as `=ISFORMULA(E2)`.
+   - Set a light gray fill color.
 
-2.  Highlight empty cells (missing translations)
+2. Highlight missing translations
 
-    - Select entire column (e.g., E2:G for E-G colum's).
-    - Add a custom formula rule: `=И(ДЛСТР(СЖПРОБЕЛЫ($A2))>0; ДЛСТР(СЖПРОБЕЛЫ(E2))=0)`.
-    - Set fill color to red (or any noticeable color).
+   - Select the target translation range, for example `E2:G`.
+   - Add a custom formula rule such as `=AND(LEN(TRIM($A2))>0, LEN(TRIM(E2))=0)`.
+   - Set a warning color, for example red or orange.
+
+If your Google Sheets UI is localized, function names may differ, but the logic should stay the same.
 
 ## Test and coverage scripts
 
@@ -304,4 +313,4 @@ Notes:
 - `test:cli-result` and `test:coverage:cli-result` expect a working `example/credentials.json`, Google Sheets access, and network connectivity.
 - Per-suite coverage artifacts and Codecov flags are emitted as `merged`, `source`, `generated-runtime`, and `cli-result`.
 
-<img src="https://codecov.io/gh/ziqq/flutter_simple_country_picker/graphs/sunburst.svg?token=RYIQF8DZNM" width="375" />
+<img src="https://codecov.io/gh/ziqq/sheety-localization/graphs/sunburst.svg?token=RYIQF8DZNM" width="375" />
