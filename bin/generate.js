@@ -52,7 +52,9 @@ export function isExecutedDirectly() {
     if (!entryPath) {
         return false;
     }
-    return (path.resolve(entryPath) === path.resolve(fileURLToPath(import.meta.url)));
+    const resolvedEntryPath = fs.realpathSync.native(path.resolve(entryPath));
+    const resolvedModulePath = fs.realpathSync.native(path.resolve(fileURLToPath(import.meta.url)));
+    return resolvedEntryPath === resolvedModulePath;
 }
 export async function main() {
     var _a;

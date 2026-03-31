@@ -85,9 +85,12 @@ export function isExecutedDirectly(): boolean {
     return false;
   }
 
-  return (
-    path.resolve(entryPath) === path.resolve(fileURLToPath(import.meta.url))
+  const resolvedEntryPath = fs.realpathSync.native(path.resolve(entryPath));
+  const resolvedModulePath = fs.realpathSync.native(
+    path.resolve(fileURLToPath(import.meta.url)),
   );
+
+  return resolvedEntryPath === resolvedModulePath;
 }
 
 export async function main(): Promise<void> {

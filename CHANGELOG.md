@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.2
+- **ADDED**: Regression coverage for symlinked CLI entry paths to prevent future releases from silently skipping `main()` when launched from the installed npm executable.
+- **FIXED**: Global npm CLI execution now works when `sheety-localization` is launched through a symlinked package bin, such as the binary installed by `npm install -g`.
+
 ## 0.2.1
 - **CHANGED**: Documentation
 

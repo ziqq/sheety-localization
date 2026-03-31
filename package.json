@@ -1,7 +1,7 @@
 {
   "name": "sheety-localization",
   "description": "CLI to generate localization from Google Sheets",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "MIT",
   "type": "module",
   "author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",

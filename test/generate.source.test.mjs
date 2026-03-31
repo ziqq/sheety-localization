@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, symlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, expect, jest, test } from '@jest/globals';
@@ -943,4 +943,18 @@ test('isExecutedDirectly reflects argv entry path matching the current module', 
 
   process.argv = ['node'];
   expect(isExecutedDirectly()).toBe(false);
+});
+
+test('isExecutedDirectly resolves symlinked entry paths', async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'sheety-cli-entry-'));
+
+  try {
+    const symlinkPath = path.join(tempRoot, 'sheety-localization');
+    await symlink(path.join(process.cwd(), 'src', 'generate.ts'), symlinkPath);
+
+    process.argv = ['node', symlinkPath];
+    expect(isExecutedDirectly()).toBe(true);
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
 });
