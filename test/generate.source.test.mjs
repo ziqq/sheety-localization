@@ -5,6 +5,10 @@ import path from 'node:path';
 import { afterEach, beforeEach, expect, jest, test } from '@jest/globals';
 import { google } from 'googleapis';
 
+import {
+  isLocaleCode,
+  removeEmptyDirectories,
+} from '../src/generator/shared.ts';
 import { importGeneratorModule } from './runtime-target.mjs';
 
 const { __test__ } = await importGeneratorModule();
@@ -163,7 +167,14 @@ test('small helper functions keep locale and meta normalization behavior', () =>
   expect(getBaseLocale('pt_BR')).toBe('pt');
   expect(getBaseLocale('ru')).toBeNull();
   expect(mapPlaceholderType('DateTime')).toBe('Date | string');
+  expect(mapPlaceholderType('string')).toBe('string');
+  expect(mapPlaceholderType('integer')).toBe('number');
+  expect(mapPlaceholderType('boolean')).toBe('boolean');
+  expect(mapPlaceholderType('list')).toBe('unknown[]');
+  expect(mapPlaceholderType('json')).toBe('Record<string, unknown>');
+  expect(mapPlaceholderType('custom')).toBe('unknown');
   expect(normalizeMessageMeta('  Hello  ')).toEqual({ description: 'Hello' });
+  expect(normalizeMessageMeta('   ')).toBeNull();
   expect(normalizeMessageMeta({ description: 'Hello' })).toEqual({
     description: 'Hello',
   });
@@ -171,6 +182,10 @@ test('small helper functions keep locale and meta normalization behavior', () =>
   expect(
     buildIgnorePatterns('help,temp-.*').map((entry) => entry.source),
   ).toEqual(['help', 'temp-.*']);
+  expect(isLocaleCode('en_US_US')).toBe(false);
+  const missingPath = path.join(os.tmpdir(), 'sheety-missing-directory');
+  expect(listFilesRecursive(missingPath, () => true)).toEqual([]);
+  expect(() => removeEmptyDirectories(missingPath)).not.toThrow();
 });
 
 test('buildIgnorePatterns skips invalid regex values', () => {
@@ -232,6 +247,51 @@ test('generateLocalizationTable reports skipped rows and invalid json meta', asy
   expect(console.error).toHaveBeenCalledWith(
     '[ERROR]',
     'Missing source locale value at row 7, skipping',
+  );
+});
+
+test('generateLocalizationData rejects malformed structural values', async () => {
+  const result = await generateLocalizationData([
+    {
+      title: '---',
+      values: [
+        ['label', 'description', 'meta', 'en'],
+        ['title', '', '', 'Title'],
+      ],
+    },
+    {
+      title: 'invalid-source',
+      values: [
+        ['label', 'description', 'meta', 42, 'ru'],
+        ['title', '', '', 'Title', 'Заголовок'],
+      ],
+    },
+    {
+      title: 'edge',
+      values: [
+        ['label', 'description', 'meta', 'en', 'invalid locale', null, 'ru'],
+        undefined,
+        ['---', '', '', 'Invalid', '', '', 'Неверно'],
+        ['object-meta', '', { context: 'menu' }, 'Open', '', '', 'Открыть'],
+        ['null-meta', '', null, 'Close', '', '', 'Закрыть'],
+      ],
+    },
+  ]);
+
+  expect(result.bucketSourceLocales).toEqual({ edge: 'en' });
+  expect(result.buckets.edge.ru['@object_meta']).toEqual({ context: 'menu' });
+  expect(result.buckets.edge.ru['@null_meta']).toBeUndefined();
+  expect(console.error).toHaveBeenCalledWith(
+    '[ERROR]',
+    'Sheet "---" has an invalid title after sanitization, skipping',
+  );
+  expect(console.error).toHaveBeenCalledWith(
+    '[ERROR]',
+    'Sheet "invalid-source" has an invalid source locale in column D, skipping',
+  );
+  expect(console.error).toHaveBeenCalledWith(
+    '[ERROR]',
+    'Invalid label at row 3, skipping',
   );
 });
 
@@ -386,6 +446,21 @@ test('writeJsonFiles can omit and explicitly control @@last_modified metadata', 
 
     const withTimestamp = JSON.parse(readFileSync(appEnPath, 'utf8'));
     expect(withTimestamp['@@last_modified']).toBe('2026-03-25T12:00:00.000Z');
+
+    await writeJsonFiles(
+      buckets,
+      outputDir,
+      'app',
+      {},
+      'Test Author',
+      'Generated in tests',
+      'Source test context',
+      undefined,
+      {
+        includeLastModified: true,
+        modifiedAt: '2026-03-25T12:00:00.000Z',
+      },
+    );
 
     await writeJsonFiles(
       buckets,
@@ -648,6 +723,8 @@ test('main generates js index when requested', async () => {
       outputDir,
       '--type',
       'js',
+      '--meta',
+      'null',
     ];
 
     await main();
@@ -692,6 +769,49 @@ test('main exits when credentials file is missing', async () => {
     expect(console.error).toHaveBeenCalledWith(
       '[ERROR]',
       `Missing credentials file at ${missingCredentialsPath}`,
+    );
+  } finally {
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('main exits for malformed inline and file metadata', async () => {
+  const tempRoot = await mkdtemp(
+    path.join(os.tmpdir(), 'sheety-localization-source-main-meta-error-'),
+  );
+  const credentialsPath = path.join(tempRoot, 'credentials.json');
+  const metaPath = path.join(tempRoot, 'meta.json');
+  writeFileSync(credentialsPath, '{}', 'utf8');
+  writeFileSync(metaPath, '{broken', 'utf8');
+
+  try {
+    process.exit = jest.fn((code) => {
+      throw new Error(`EXIT:${code}`);
+    });
+
+    for (const metadataArguments of [
+      ['--meta', '{broken'],
+      ['--meta-file', metaPath],
+    ]) {
+      process.argv = [
+        'node',
+        'bin/generate.js',
+        '--credentials',
+        credentialsPath,
+        '--sheet',
+        'spreadsheet-id',
+        ...metadataArguments,
+      ];
+      await expect(main()).rejects.toThrow('EXIT:1');
+    }
+
+    expect(console.error).toHaveBeenCalledWith(
+      '[ERROR]',
+      expect.stringContaining('Failed to parse --meta JSON:'),
+    );
+    expect(console.error).toHaveBeenCalledWith(
+      '[ERROR]',
+      expect.stringContaining(`Failed to read --meta-file ${metaPath}:`),
     );
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
@@ -743,6 +863,39 @@ test('fetchSpreadsheet exits with helpful messages for 403 and 404 metadata erro
 
     jest.clearAllMocks();
   }
+});
+
+test('fetchSpreadsheet reports generic metadata failures', async () => {
+  process.exit = jest.fn((code) => {
+    throw new Error(`EXIT:${code}`);
+  });
+  google.sheets = jest.fn(() => ({
+    spreadsheets: {
+      get: jest.fn().mockRejectedValue(new Error('Network down')),
+      values: { get: jest.fn() },
+    },
+  }));
+
+  await expect(fetchSpreadsheet({}, 'sheet-id')).rejects.toThrow('EXIT:1');
+  expect(console.error).toHaveBeenCalledWith(
+    '[ERROR]',
+    'Error fetching spreadsheet metadata: Error: Network down',
+  );
+});
+
+test('fetchSpreadsheet accepts metadata without a sheets collection', async () => {
+  google.sheets = jest.fn(() => ({
+    spreadsheets: {
+      get: jest.fn().mockResolvedValue({ data: {} }),
+      values: { get: jest.fn() },
+    },
+  }));
+
+  await expect(fetchSpreadsheet({}, 'sheet-id')).resolves.toEqual([]);
+  expect(console.log).toHaveBeenCalledWith(
+    '[INFO]',
+    'Spreadsheet summary: total sheets=0, usable=0, ignored=0, insufficient=0',
+  );
 });
 
 test('fetchSpreadsheet reports generic metadata and value fetch failures while keeping usable sheets', async () => {

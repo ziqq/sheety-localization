@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import fs, { readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -12,6 +12,7 @@ import {
   createJsIndexSource,
   createTsIndexSource,
   logManifestSummary,
+  mapPlaceholderType,
 } from '../src/generator/manifest.ts';
 import {
   cleanupStaleIndexFiles,
@@ -19,10 +20,17 @@ import {
   generateIndexTs,
   writeJsonFiles,
 } from '../src/generator/output.ts';
+import IntlMessageFormat from '../src/runtime/intl-messageformat.ts';
 
 beforeEach(() => {
   jest.spyOn(console, 'log').mockImplementation(() => {});
   jest.spyOn(console, 'error').mockImplementation(() => {});
+});
+
+test('runtime source entry re-exports the bundled message formatter', () => {
+  const message = new IntlMessageFormat('Hello, {name}!', 'en');
+
+  expect(message.format({ name: 'Ada' })).toBe('Hello, Ada!');
 });
 
 afterEach(() => {
@@ -142,6 +150,87 @@ test('buildGeneratedManifest derives locales, bucket metadata, and file paths', 
   ).toBe('./todo/app_ru.json');
 });
 
+test('manifest handles empty projects and conservative placeholder metadata', () => {
+  const manifest = buildGeneratedManifest(
+    {
+      app: {
+        fr: {
+          title: 'Bonjour',
+          '@title': {
+            placeholders: {
+              invalid: null,
+              missingType: { type: ' ' },
+              publishedAt: { type: 'date', example: '2026-09-14' },
+            },
+          },
+        },
+      },
+    },
+    '/virtual/locales',
+    '',
+    { app: 'fr' },
+  );
+
+  expect(manifest.baseLocale).toBe('fr');
+  expect(manifest.files[0].fileName).toBe('fr.json');
+  expect(manifest.bucketDefinitions.app.messages[0].placeholders).toEqual([
+    { name: 'invalid', type: 'unknown' },
+    { name: 'missingType', type: 'unknown' },
+    { name: 'publishedAt', type: 'date', example: '2026-09-14' },
+  ]);
+  const typeCases = [
+    ['string', 'string'],
+    ['int', 'number'],
+    ['integer', 'number'],
+    ['double', 'number'],
+    ['float', 'number'],
+    ['num', 'number'],
+    ['number', 'number'],
+    ['bool', 'boolean'],
+    ['boolean', 'boolean'],
+    ['date', 'Date | string'],
+    ['datetime', 'Date | string'],
+    ['array', 'unknown[]'],
+    ['list', 'unknown[]'],
+    ['map', 'Record<string, unknown>'],
+    ['json', 'Record<string, unknown>'],
+    ['object', 'Record<string, unknown>'],
+    ['unknown-type', 'unknown'],
+  ];
+  for (const [input, expected] of typeCases) {
+    expect(mapPlaceholderType(input)).toBe(expected);
+  }
+
+  const emptyManifest = buildGeneratedManifest({}, '/virtual/locales', 'app');
+  expect(emptyManifest.baseLocale).toBe('');
+  expect(createTsIndexSource(emptyManifest)).toContain(
+    'export type SupportedLocale = string;',
+  );
+  logManifestSummary(emptyManifest);
+  expect(console.log).toHaveBeenCalledWith(
+    '[INFO]',
+    'Manifest summary: baseLocale=, locales=[none], buckets=0',
+  );
+
+  const emptyBucketManifest = buildGeneratedManifest(
+    { empty: {} },
+    '/virtual/locales',
+    'app',
+  );
+  expect(emptyBucketManifest.bucketDefinitions.empty).toEqual({
+    keys: [],
+    messages: [],
+  });
+
+  const invalidRequestedLocale = buildGeneratedManifest(
+    { app: { en: { title: 'Hello' } } },
+    '/virtual/locales',
+    'app',
+    { app: 'fr' },
+  );
+  expect(invalidRequestedLocale.bucketBaseLocales.app).toBe('en');
+});
+
 test('createTsIndexSource exposes documented runtime helpers', () => {
   const manifest = buildGeneratedManifest(
     {
@@ -251,6 +340,19 @@ test('generateIndexTs and generateIndexJs write files and cleanupStaleIndexFiles
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }
+});
+
+test('index generation reports a missing bundled message formatter', async () => {
+  jest.spyOn(fs, 'existsSync').mockReturnValue(false);
+  const manifest = buildGeneratedManifest(
+    { app: { en: { title: 'Hello' } } },
+    '/virtual/locales',
+    'app',
+  );
+
+  await expect(generateIndexJs('/virtual/locales', manifest)).rejects.toThrow(
+    'Bundled message formatter is missing',
+  );
 });
 
 test('countBucketPlaceholders and logManifestSummary report manifest totals', () => {
