@@ -49,6 +49,7 @@ jobs:
           expected_tag="v${package_version}"
 
           if [[ "${GITHUB_REF_NAME}" != "${expected_tag}" ]]; then
+            echo "::error title=Release tag mismatch::Tag ${GITHUB_REF_NAME} does not match package.json version ${package_version}."
             echo "Tag ${GITHUB_REF_NAME} does not match package version ${package_version}." >&2
             exit 1
           fi
@@ -69,24 +70,66 @@ jobs:
         env:
           PACKAGE_SPEC: ${{ steps.package.outputs.spec }}
         run: |
-          if npm view "${PACKAGE_SPEC}" version >/dev/null 2>&1; then
+          set +e
+          registry_output="$(npm view "${PACKAGE_SPEC}" version 2>&1)"
+          registry_status=$?
+          set -e
+
+          if [[ ${registry_status} -eq 0 ]]; then
+            echo "npm registry already contains ${PACKAGE_SPEC}."
             echo "already_published=true" >> "${GITHUB_OUTPUT}"
-          else
+          elif [[ "${registry_output}" == *"E404"* ]]; then
+            echo "npm registry does not contain ${PACKAGE_SPEC}; publication is required."
             echo "already_published=false" >> "${GITHUB_OUTPUT}"
+          else
+            printf '%s\n' "${registry_output}" >&2
+            echo "::error title=npm registry check failed::npm view ${PACKAGE_SPEC} exited with code ${registry_status}. This is not treated as an unpublished version."
+            exit "${registry_status}"
           fi
 
       - name: Publish to npm
         id: publish
         if: steps.registry.outputs.already_published != 'true'
-        run: npm publish --access public --provenance
+        shell: bash
+        run: |
+          set +e
+          npm publish --access public --provenance
+          publish_status=$?
+          set -e
+
+          if [[ ${publish_status} -ne 0 ]]; then
+            echo "::error title=npm publish failed::npm publish exited with code ${publish_status}. If npm reported E404 for an existing package, verify that NODE_AUTH_TOKEN is current and has publish access."
+            exit "${publish_status}"
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
       - name: Verify npm publication
+        shell: bash
         env:
           PACKAGE_SPEC: ${{ steps.package.outputs.spec }}
           PACKAGE_VERSION: ${{ steps.package.outputs.version }}
-        run: test "$(npm view "${PACKAGE_SPEC}" version)" = "${PACKAGE_VERSION}"
+        run: |
+          for attempt in 1 2 3 4 5; do
+            set +e
+            published_version="$(npm view "${PACKAGE_SPEC}" version 2>&1)"
+            registry_status=$?
+            set -e
+
+            if [[ ${registry_status} -eq 0 && "${published_version}" == "${PACKAGE_VERSION}" ]]; then
+              echo "Verified ${PACKAGE_SPEC} in the npm registry."
+              exit 0
+            fi
+
+            printf 'Registry verification attempt %s failed: %s\n' \
+              "${attempt}" "${published_version}" >&2
+            if [[ ${attempt} -lt 5 ]]; then
+              sleep "$((attempt * 2))"
+            fi
+          done
+
+          echo "::error title=npm publication verification failed::The npm registry did not return ${PACKAGE_SPEC} after five attempts. GitHub Release creation has been stopped."
+          exit 1
 
       - name: Create GitHub Release
         env:
