@@ -4,7 +4,7 @@
 [![codecov](https://codecov.io/gh/ziqq/sheety-localization/graph/badge.svg?token=RYIQF8DZNM)](https://codecov.io/gh/ziqq/sheety-localization)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-**Sheety Localization** is a CLI utility that reads localization tables from Google Sheets and generates per-bucket locale JSON files plus a generated runtime entrypoint (`index.js` or `index.ts`).
+**Sheety Localization** is a JavaScript/TypeScript CLI utility that reads localization tables from Google Sheets and generates per-bucket locale JSON files plus a generated runtime entrypoint (`index.js` or `index.ts`). It does not generate Flutter or Dart output.
 
 
 ## Features
@@ -20,12 +20,15 @@
 - Controllable `@@last_modified` metadata via `--last-modified`, `--no-last-modified`, and `--modified`.
 - Lazy loading of translations via `import()`.
 - Automatic fallback from regional locales to base locales (for example `pt_BR -> pt`).
+- Per-key fallback from source locale through language and regional dictionaries.
+- ICU MessageFormat plural, select, number, and date formatting.
+- Optional OpenAI-assisted filling of empty translation cells with validation and dry-run mode.
 - Remove stale generated JSON files when locales or sheets are deleted.
 
 
 ## TL;DR
 
-1. Create a Google spreadsheet where each sheet/tab becomes one generated bucket, with columns: `label | description | meta | en | ru | ...`.
+1. Create a Google spreadsheet where each sheet/tab becomes one generated bucket, with columns: `label | description | meta | <source locale> | <target locale> | ...`.
 2. Get a Google Cloud service account, enable Sheets API, share the spreadsheet.
 3. Install the CLI globally:
 
@@ -48,18 +51,49 @@ sheety-localization \
   --comment="Generated from Google Sheets"
 ```
 
-5. Import the generated runtime entrypoint (`src/locales/index.ts`) into the project.
+5. Import the generated runtime entrypoint (`src/locales/index.ts` or `index.js`) into the project. The ICU formatter is generated beside it, so the consuming project does not need an additional runtime dependency.
 
 6. Optionally automate translation formulas, conditional formatting, VS Code tasks, and CI pipelines.
 
 
 ## Requirements
 
-- Node.js >= 18
+- Node.js >= 20.19
 - Google Service Account with access to Google Sheets API
 - Google Sheet where each sheet/tab becomes one generated bucket/namespace
 - Header row in each sheet/tab:
-  `label | description | meta | en | ru | ... (other locales)`
+  `label | description | meta | <source locale> | <target locale> | ...`
+
+### Locale code normalization
+
+Locale headers must be valid BCP 47 language tags. The generator treats `_` as
+`-`, canonicalizes language/script/region casing with `Intl.getCanonicalLocales`,
+and uses `_` in generated locale identifiers and file names:
+
+| Sheet header | Generated locale | Example file |
+|---|---|---|
+| `en` | `en` | `app_en.json` |
+| `EN-us` | `en_US` | `app_en_US.json` |
+| `pt-br` or `pt_BR` | `pt_BR` | `app_pt_BR.json` |
+| `zh-hant-tw` | `zh_Hant_TW` | `app_zh_Hant_TW.json` |
+
+Use the generated canonical value with runtime helpers such as `isLocale()` and
+when referring to generated files directly. Headers that normalize to the same
+locale, such as `pt-br` and `pt_BR`, collide and cause that sheet to be skipped.
+
+### Generated runtime compatibility
+
+Generated ESM indexes load locale JSON with an import attribute:
+
+```js
+import('./app/app_en.json', { with: { type: 'json' } });
+```
+
+The attribute tells an ESM runtime that the imported module is JSON. Direct
+execution of the generated `index.js` therefore requires Node.js >= 20.19.
+Modern bundlers such as Vite and esbuild process these imports during the build;
+older Node.js versions or bundlers that cannot parse import attributes are not
+supported.
 
 
 ## Installation
@@ -106,6 +140,33 @@ sheety-localization \
 - `--ignore`: Comma-separated list of RegExp patterns to ignore sheets by title (e.g. `help,temp-.*`)
 - `--help`: Show detailed help with all options
 
+### Fill missing translations with OpenAI
+
+`sheety-localize` only considers empty target-locale cells. The fourth column is always the source locale, so it may be `en`, `ru`, or another valid BCP-47 locale. A dry run is the default and still calls the OpenAI API, but never writes to Google Sheets:
+
+```bash
+OPENAI_API_KEY=<token> sheety-localize \
+  --credentials=credentials.json \
+  --sheet=<SPREADSHEET_ID>
+```
+
+Review the proposed A1 cell updates, then opt into writing them:
+
+```bash
+OPENAI_API_KEY=<token> sheety-localize \
+  --credentials=credentials.json \
+  --sheet=<SPREADSHEET_ID> \
+  --write
+```
+
+Useful options are `--model` (default `gpt-5-mini`), `--batch`, `--workers`, `--timeout`, `--prompt`, `--ignore`, `--token`, and `--token-file`. Write mode requires the service account to have Editor access. Responses are rejected when they lose ICU placeholders/directives or markup, contain invalid output, or look like runaway text; a failed multi-language response is retried one language at a time.
+
+#### OpenAI data handling
+
+Dry-run mode protects the spreadsheet from writes, but it is not an offline preview. For every selected empty target cell, `sheety-localize` sends the row label, source locale and text, optional description and metadata, and requested target locale codes to the configured OpenAI model. Existing translations and Google service-account credentials are not included in the prompt.
+
+Use `OPENAI_API_KEY` or `--token-file` instead of putting a token directly in shell history. Only run the command for spreadsheets whose localization content may be sent to the selected model, review dry-run output before `--write`, and keep both Google and OpenAI credentials out of version control.
+
 
 ## Integration
 
@@ -113,12 +174,15 @@ sheety-localization \
 
 - Each sheet/tab in the spreadsheet becomes one generated bucket or namespace.
 - The first row in each sheet/tab must be:
-  `label | description | meta | en | ru | ...`
+  `label | description | meta | <source locale> | <target locale> | ...`
 - Each next row describes one localized message:
   - `label` — translation key.
   - `description` — optional human-readable note for translators.
   - `meta` — optional JSON metadata for the message, for example placeholder definitions.
-  - `en`, `ru`, ... — one column per locale.
+  - Column D — the authoritative source locale and source message.
+  - Remaining locale columns — translations of the source message.
+- The three structural headers are validated strictly. Invalid locale headers, duplicate normalized locales, duplicate sanitized labels, and colliding sanitized sheet names are skipped and reported.
+- `description` is preserved in generated `@key` metadata and merged with the optional JSON object from `meta`.
 - Missing locale cells are omitted from generated output by default: no translation key and no `@key` metadata entry are emitted for that locale.
 - Use `--include-empty` if you want missing locale cells to become empty-string translations with matching `@key` metadata entries.
 
@@ -150,6 +214,8 @@ This generates, for example:
 ```text
 src/locales/
   index.ts
+  sheety-message-format.js
+  sheety-message-format.d.ts
   app/
     app_en.json
     app_ru.json
@@ -175,15 +241,15 @@ console.log(supportedLocales); // e.g. ['en', 'ru']
 console.log(bucketNames); // e.g. ['app', 'errors']
 ```
 
-The generated index file exposes manifest data, resolution helpers, loaders, formatters, and runtime facades.
+The generated index file exposes manifest data, resolution helpers, loaders, ICU formatters, and runtime facades. The generated `sheety-message-format.js` is self-contained and imported by the index, so consumers do not need to install `intl-messageformat`.
 
 Generated index helpers are grouped into a few categories:
 
 - Manifest data:
-  - `supportedLocales`, `baseLocale`, `bucketNames`, `bucketLocales`, `bucketKeys`, `messageMeta`, `locales`
+  - `supportedLocales`, `baseLocale`, `bucketNames`, `bucketLocales`, `bucketBaseLocales`, `bucketKeys`, `messageMeta`, `locales`
 - Validation and resolution:
   - `normalizeLocale(locale)`, `isLocale(locale)`, `isBucket(bucket)`, `isMessageKey(bucket, key)`
-  - `getMessageMeta(bucket, key)`, `getLocaleChain(locale)`, `resolveLocale(locale)`, `resolveBucketLocale(bucket, locale)`
+  - `getMessageMeta(bucket, key)`, `getLocaleChain(locale)`, `getBucketLocaleChain(bucket, locale)`, `resolveLocale(locale)`, `resolveBucketLocale(bucket, locale)`
 - Loading and formatting:
   - `loadBucket(bucket, locale)`, `loadLocale(locale)`, `formatMessage(template, params)`
   - `translateLoaded(bucket, key, dictionary, params)`, `translate(bucket, key, locale, params)`
@@ -310,6 +376,7 @@ If your Google Sheets UI is localized, function names may differ, but the logic 
 - `npm run coverage`: run all four coverage commands above.
 
 Notes:
+- `test/fixtures/backward-compatibility/v0.2.2` is an immutable baseline generated by the `v0.2.2` CLI. The example contract suite compares all 66 message values, legacy runtime exports, and soft placeholder formatting against it.
 - `test:cli-result` and `test:coverage:cli-result` expect a working `example/credentials.json`, Google Sheets access, and network connectivity.
 - Per-suite coverage artifacts and Codecov flags are emitted as `merged`, `source`, `generated-runtime`, and `cli-result`.
 

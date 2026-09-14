@@ -7,7 +7,7 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { buildGeneratedManifest, countBucketPlaceholders, createJsIndexSource, createTsIndexSource, logManifestSummary, mapPlaceholderType, } from './generator/manifest.js';
 import { cleanupStaleIndexFiles, generateIndexJs, generateIndexTs, writeJsonFiles, } from './generator/output.js';
-import { buildIgnorePatterns, fetchSpreadsheet, generateLocalizationTable, } from './generator/spreadsheet.js';
+import { buildIgnorePatterns, fetchSpreadsheet, generateLocalizationData, generateLocalizationTable, } from './generator/spreadsheet.js';
 import { err, getBaseLocale, listFilesRecursive, log, normalizeMessageMeta, } from './generator/shared.js';
 const help = `
 Localization Generator
@@ -22,6 +22,7 @@ function exitWithError(message) {
     err(message);
     process.exit(1);
 }
+/** Parse inline global metadata while preserving an object-shaped JSON root. */
 function parseMeta(metaText) {
     if (!metaText) {
         return {};
@@ -34,6 +35,10 @@ function parseMeta(metaText) {
         exitWithError(`Failed to parse --meta JSON: ${error}`);
     }
 }
+/**
+ * Read global metadata from disk without letting non-object JSON replace the
+ * generated locale dictionary root.
+ */
 function readMetaFile(metaFilePath) {
     if (!metaFilePath) {
         return {};
@@ -47,6 +52,11 @@ function readMetaFile(metaFilePath) {
         exitWithError(`Failed to read --meta-file ${metaFilePath}: ${error}`);
     }
 }
+/**
+ * Detect direct CLI execution after resolving npm's symlinked bin entry.
+ * Keeping this check separate lets tests import the module without running the
+ * command as a side effect.
+ */
 export function isExecutedDirectly() {
     const entryPath = process.argv[1];
     if (!entryPath) {
@@ -56,6 +66,10 @@ export function isExecutedDirectly() {
     const resolvedModulePath = fs.realpathSync.native(path.resolve(fileURLToPath(import.meta.url)));
     return resolvedEntryPath === resolvedModulePath;
 }
+/**
+ * Run the read-only Google Sheets generation pipeline and write its validated
+ * locale dictionaries, manifest, runtime index, and bundled formatter.
+ */
 export async function main() {
     var _a;
     const argv = await yargs(hideBin(process.argv))
@@ -160,10 +174,10 @@ export async function main() {
     if (!sheets.length) {
         exitWithError('No sheets found');
     }
-    const buckets = await generateLocalizationTable(sheets, {
+    const { buckets, bucketSourceLocales } = await generateLocalizationData(sheets, {
         includeEmpty: argv['include-empty'],
     });
-    const manifest = buildGeneratedManifest(buckets, outputDir, prefix);
+    const manifest = buildGeneratedManifest(buckets, outputDir, prefix, bucketSourceLocales);
     if (!manifest.localeNames.length) {
         exitWithError('No locales found in processed sheets.');
     }
@@ -183,6 +197,7 @@ export async function main() {
     cleanupStaleIndexFiles(outputDir, type);
     log(`Successfully generated localization files for ${finalManifest.bucketNames.length} buckets.`);
 }
+/** Stable source-level hooks used by the split Jest suites. */
 export const __test__ = {
     buildGeneratedManifest,
     buildIgnorePatterns,
@@ -193,6 +208,7 @@ export const __test__ = {
     fetchSpreadsheet,
     generateIndexJs,
     generateIndexTs,
+    generateLocalizationData,
     generateLocalizationTable,
     getBaseLocale,
     isExecutedDirectly,

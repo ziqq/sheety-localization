@@ -1,0 +1,16 @@
+{
+  "@@locale": "en",
+  "@@author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
+  "@@comment": "v0.2.2 backward compatibility baseline",
+  "@@context": "Generated from the live Google Sheet on 2026-09-11",
+  "title": "My tasks for today",
+  "subtitle": "You have {numberOfTasks} tasks for today!",
+  "@subtitle": {
+    "placeholders": {
+      "numberOfTasks": {
+        "type": "String"
+      }
+    }
+  },
+  "addButton": "Add a task"
+}

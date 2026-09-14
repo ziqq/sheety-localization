@@ -1,7 +1,7 @@
 {
   "name": "sheety-localization",
-  "description": "CLI to generate localization from Google Sheets",
-  "version": "0.2.2",
+  "description": "CLI to generate and localize JavaScript/TypeScript messages from Google Sheets",
+  "version": "0.3.0",
   "license": "MIT",
   "type": "module",
   "author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
@@ -16,11 +16,12 @@
   },
   "main": "bin/generate.min.js",
   "bin": {
-    "sheety-localization": "bin/generate.min.js"
+    "sheety-localization": "bin/generate.min.js",
+    "sheety-localize": "bin/localize.min.js"
   },
   "scripts": {
-    "build:js": "tsc && rm -f bin/generator/types.js bin/generator/types.js.map",
-    "build": "npm run build:js && esbuild bin/generate.js --minify --format=esm --platform=node --target=node18 --outfile=bin/generate.min.js && rm -rf bin/generate.js",
+    "build:js": "tsc && esbuild src/runtime/intl-messageformat.ts --bundle --minify --format=esm --platform=neutral --target=es2020 --outfile=bin/runtime/intl-messageformat.min.js && rm -f bin/generator/types.js bin/generator/types.js.map bin/localize/models.js bin/localize/models.js.map bin/runtime/intl-messageformat.js bin/runtime/intl-messageformat.js.map",
+    "build": "npm run build:js && esbuild bin/generate.js --minify --format=esm --platform=node --target=node20 --outfile=bin/generate.min.js && esbuild bin/localize.js --minify --format=esm --platform=node --target=node20 --outfile=bin/localize.min.js && rm -f bin/generate.js bin/localize.js",
     "coverage:print": "node ./scripts/print-coverage-summary.mjs",
     "tested:print": "node ./scripts/print-tested-files.mjs",
     "test:jest": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
@@ -35,13 +36,17 @@
     "coverage": "npm run test:coverage && npm run test:coverage:source && npm run test:coverage:generated-runtime && npm run test:coverage:cli-result"
   },
   "dependencies": {
-    "googleapis": "^170.1.0",
+    "googleapis": "^178.0.0",
     "yargs": "^18.0.0"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   },
   "devDependencies": {
     "@types/node": "^25.0.9",
     "@types/yargs": "^17.0.35",
     "esbuild": "^0.27.2",
+    "intl-messageformat": "^11.2.13",
     "jest": "^30.3.0",
     "typescript": "^5.9.3"
   },

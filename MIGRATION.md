@@ -4,6 +4,13 @@ This guide describes migration from previous `sheety-localization` releases to t
 
 Older versions of the package mainly exposed generated locale files plus a minimal `loadLocales()` entrypoint. The current generator still keeps that compatibility path, but it now also generates a richer runtime API: locale manifests, fallback helpers, typed placeholder metadata, per-locale loaders, and sync/async namespace helpers.
 
+## Upgrading from 0.2.x to 0.3.0
+
+- Run the package and direct generated JavaScript output on Node.js `>=20.19.0`, or process the generated runtime with a bundler that supports JSON import attributes.
+- Regenerate the complete locale output. Keep `index.js` or `index.ts`, `sheety-message-format.js`, its declaration file for TypeScript output, and all generated JSON files together.
+- Treat column D as the authoritative source locale for each bucket. It is no longer implicitly English.
+- Existing `loadLocales()` exports and the 66 translation values in the bundled compatibility fixture remain compatible with `v0.2.2`; generated `@key` metadata may contain additional descriptions.
+
 ## Who needs to change code
 
 If your app only does this:
@@ -28,9 +35,9 @@ Previous package versions focused on:
 
 Current versions additionally generate:
 
-- `supportedLocales`, `baseLocale`, `bucketNames`, `bucketLocales`
+- `supportedLocales`, `baseLocale`, `bucketNames`, `bucketLocales`, `bucketBaseLocales`
 - `bucketKeys`, `messageMeta`, `getMessageMeta()`
-- `normalizeLocale()`, `getLocaleChain()`, `resolveLocale()`, `resolveBucketLocale()`
+- `normalizeLocale()`, `getLocaleChain()`, `getBucketLocaleChain()`, `resolveLocale()`, `resolveBucketLocale()`
 - `isLocale()`, `isBucket()`, `isMessageKey()`
 - `loadBucket()`, `loadLocale()`, `translate()`, `translateLoaded()`
 - `createBucketTranslator()`
@@ -39,7 +46,7 @@ Current versions additionally generate:
 
 ## Migration paths
 
-### 1. Keep the old integration with no behavioral changes
+### 1. Keep the old loading API
 
 Before:
 
@@ -159,15 +166,17 @@ Use these when you want UI and tooling to follow the generated output instead of
 
 ## Recommended upgrade order
 
-1. Regenerate locale output with the new package version.
-2. Keep `loadLocales()` first if you want a zero-risk upgrade.
+1. Regenerate locale output with the new package version. The generated `sheety-message-format.js` contains the ICU formatter, so consumers do not need to install `intl-messageformat`.
+2. Keep `loadLocales()` first if you want a low-risk API migration.
 3. Move to `loadLocale()` when you want per-locale loading.
 4. Move to `loadLocaleFacade()` or `createLoadedLocaleFacade()` when you want the new primary runtime API.
 5. Replace manual placeholder interpolation with `translateLoaded()` or runtime helper methods.
 
 ## Behavioral differences to know
 
-- Locale fallback is now generated explicitly. For example, `pt-BR` resolves through `pt_BR -> pt -> baseLocale`.
+- Column D defines the source locale for each bucket; English is no longer assumed.
+- Locale fallback is applied per key. For example, `pt-BR` merges `bucket source -> pt -> pt_BR`, so a missing regional key falls back without discarding available regional keys.
+- Message formatting follows ICU MessageFormat semantics. Calls with no parameters return the original template, and missing simple placeholders remain unchanged for compatibility with earlier releases.
 - Placeholder metadata is emitted into `messageMeta` and used for generated TypeScript parameter types.
 - Generated output now cleans up stale locale JSON files and stale alternate index files when inputs change.
 - Generated `index.ts` and `index.js` now contain the runtime API surface and should be treated as the source of truth.

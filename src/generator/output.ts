@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 import {
   buildGeneratedManifest,
@@ -12,6 +13,53 @@ import type { GeneratedManifest, LocalizationBuckets } from './types.js';
 interface WriteJsonFilesOptions {
   includeLastModified?: boolean;
   modifiedAt?: string;
+}
+
+const generatedRuntimeFileName = 'sheety-message-format.js';
+const generatedRuntimeDeclarationFileName = 'sheety-message-format.d.ts';
+const generatedRuntimeDeclaration = `declare class IntlMessageFormat {
+  constructor(message: string, locales?: string | string[]);
+  format(values?: Record<string, unknown>): unknown;
+}
+
+export default IntlMessageFormat;
+`;
+
+function resolveBundledRuntimePath(): string {
+  const currentDir = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.resolve(currentDir, '../runtime/intl-messageformat.min.js'),
+    path.resolve(currentDir, '../../bin/runtime/intl-messageformat.min.js'),
+  ];
+  const runtimePath = candidates.find((candidate) => fs.existsSync(candidate));
+
+  if (!runtimePath) {
+    throw new Error(
+      `Bundled message formatter is missing. Checked: ${candidates.join(', ')}`,
+    );
+  }
+
+  return runtimePath;
+}
+
+/**
+ * Copy the prebuilt ICU formatter beside generated indexes. This keeps output
+ * self-contained and prevents consumers from needing a matching npm dependency.
+ */
+async function writeGeneratedRuntime(outputDir: string): Promise<void> {
+  const runtimePath = path.join(outputDir, generatedRuntimeFileName);
+  const declarationPath = path.join(
+    outputDir,
+    generatedRuntimeDeclarationFileName,
+  );
+
+  await fs.promises.copyFile(resolveBundledRuntimePath(), runtimePath);
+  await fs.promises.writeFile(
+    declarationPath,
+    generatedRuntimeDeclaration,
+    'utf8',
+  );
+  log(`Written generated message formatter at ${runtimePath}`);
 }
 
 function cleanupStaleLocaleFiles(
@@ -31,6 +79,7 @@ function cleanupStaleLocaleFiles(
   return staleFiles.length;
 }
 
+/** Remove the inactive index variant after switching between JS and TS output. */
 export function cleanupStaleIndexFiles(
   outputDir: string,
   activeType: 'js' | 'ts',
@@ -47,6 +96,11 @@ export function cleanupStaleIndexFiles(
   log(`Deleted stale index file: ${staleIndexPath}`);
 }
 
+/**
+ * Write all locale JSON dictionaries and remove stale generated JSON files.
+ * Content equality is checked without `@@last_modified`, allowing deterministic
+ * no-op runs while still honoring an explicitly requested timestamp change.
+ */
 export async function writeJsonFiles(
   buckets: LocalizationBuckets,
   outputDir: string,
@@ -174,19 +228,23 @@ export async function writeJsonFiles(
   return manifest;
 }
 
+/** Write the TypeScript runtime index and its colocated ICU formatter. */
 export async function generateIndexTs(
   outputDir: string,
   manifest: GeneratedManifest,
 ): Promise<void> {
+  await writeGeneratedRuntime(outputDir);
   const indexPath = path.join(outputDir, 'index.ts');
   await fs.promises.writeFile(indexPath, createTsIndexSource(manifest), 'utf8');
   log(`Written TypeScript locale index at ${indexPath}`);
 }
 
+/** Write the JavaScript runtime index and its colocated ICU formatter. */
 export async function generateIndexJs(
   outputDir: string,
   manifest: GeneratedManifest,
 ): Promise<void> {
+  await writeGeneratedRuntime(outputDir);
   const indexPath = path.join(outputDir, 'index.js');
   fs.writeFileSync(indexPath, createJsIndexSource(manifest), 'utf8');
   log(`Written JavaScript locale index at ${indexPath}`);

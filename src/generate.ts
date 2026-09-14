@@ -25,6 +25,7 @@ import {
 import {
   buildIgnorePatterns,
   fetchSpreadsheet,
+  generateLocalizationData,
   generateLocalizationTable,
 } from './generator/spreadsheet.js';
 import {
@@ -50,6 +51,7 @@ function exitWithError(message: string): never {
   process.exit(1);
 }
 
+/** Parse inline global metadata while preserving an object-shaped JSON root. */
 function parseMeta(metaText: string | undefined): Record<string, unknown> {
   if (!metaText) {
     return {};
@@ -63,6 +65,10 @@ function parseMeta(metaText: string | undefined): Record<string, unknown> {
   }
 }
 
+/**
+ * Read global metadata from disk without letting non-object JSON replace the
+ * generated locale dictionary root.
+ */
 function readMetaFile(
   metaFilePath: string | undefined,
 ): Record<string, unknown> {
@@ -79,6 +85,11 @@ function readMetaFile(
   }
 }
 
+/**
+ * Detect direct CLI execution after resolving npm's symlinked bin entry.
+ * Keeping this check separate lets tests import the module without running the
+ * command as a side effect.
+ */
 export function isExecutedDirectly(): boolean {
   const entryPath = process.argv[1];
   if (!entryPath) {
@@ -93,6 +104,10 @@ export function isExecutedDirectly(): boolean {
   return resolvedEntryPath === resolvedModulePath;
 }
 
+/**
+ * Run the read-only Google Sheets generation pipeline and write its validated
+ * locale dictionaries, manifest, runtime index, and bundled formatter.
+ */
 export async function main(): Promise<void> {
   const argv = await yargs(hideBin(process.argv))
     .scriptName('sheety-localization')
@@ -210,10 +225,15 @@ export async function main(): Promise<void> {
     exitWithError('No sheets found');
   }
 
-  const buckets = await generateLocalizationTable(sheets, {
+  const { buckets, bucketSourceLocales } = await generateLocalizationData(sheets, {
     includeEmpty: argv['include-empty'],
   });
-  const manifest = buildGeneratedManifest(buckets, outputDir, prefix);
+  const manifest = buildGeneratedManifest(
+    buckets,
+    outputDir,
+    prefix,
+    bucketSourceLocales,
+  );
   if (!manifest.localeNames.length) {
     exitWithError('No locales found in processed sheets.');
   }
@@ -248,6 +268,7 @@ export async function main(): Promise<void> {
   );
 }
 
+/** Stable source-level hooks used by the split Jest suites. */
 export const __test__ = {
   buildGeneratedManifest,
   buildIgnorePatterns,
@@ -258,6 +279,7 @@ export const __test__ = {
   fetchSpreadsheet,
   generateIndexJs,
   generateIndexTs,
+  generateLocalizationData,
   generateLocalizationTable,
   getBaseLocale,
   isExecutedDirectly,

@@ -1,0 +1,16 @@
+{
+  "@@locale": "ru",
+  "@@author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
+  "@@comment": "v0.2.2 backward compatibility baseline",
+  "@@context": "Generated from the live Google Sheet on 2026-09-11",
+  "title": "Мои задачи на сегодня",
+  "subtitle": "У вас {numberOfTasks} задач на сегодня!",
+  "@subtitle": {
+    "placeholders": {
+      "numberOfTasks": {
+        "type": "String"
+      }
+    }
+  },
+  "addButton": "Добавить задачу"
+}

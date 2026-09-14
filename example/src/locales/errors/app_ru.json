@@ -1,28 +1,90 @@
 {
   "@@locale": "ru",
   "@@author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
-  "@@last_modified": "2026-03-19T10:27:49.725Z",
   "@@comment": "Generated from Google Sheets",
   "@@context": "From Google Sheets",
   "bandwidthLimitExceededError": "Запрос превысил лимит пропускной способности.",
+  "@bandwidthLimitExceededError": {
+    "description": "Код ошибки 509 (bandwidth_limit_exceeded)"
+  },
   "gatewayTimeoutError": "Сервер не получил своевременного ответа от вышестоящего сервера.",
+  "@gatewayTimeoutError": {
+    "description": "Код ошибки 504 (gateway_timeout)"
+  },
   "serviceUnavailableError": "В данный момент услуга недоступна, пожалуйста, попробуйте позже.",
+  "@serviceUnavailableError": {
+    "description": "Код ошибки 503 (service_unavailable)"
+  },
   "badGatewayError": "Сервер получил недействительный ответ от вышестоящего сервера.",
+  "@badGatewayError": {
+    "description": "Код ошибки 502 (bad_gateway)"
+  },
   "notImplementedError": "Запрошенный метод не реализован на сервере.",
+  "@notImplementedError": {
+    "description": "Код ошибки 501 (not_implemented)"
+  },
   "internalServerError": "Произошла внутренняя ошибка сервера, пожалуйста, попробуйте позже.",
+  "@internalServerError": {
+    "description": "Код ошибки 500 (internal_server_error)"
+  },
   "serverError": "Произошла ошибка сервера, пожалуйста, попробуйте позже.",
+  "@serverError": {
+    "description": "Код ошибки 5xx (server_error)"
+  },
   "tooManyRequestsError": "Слишком много запросов, пожалуйста, попробуйте позже.",
+  "@tooManyRequestsError": {
+    "description": "Код ошибки 429 (too_many_requests)"
+  },
   "validationError": "Данные запроса недействительны или имеют некорректный формат.",
+  "@validationError": {
+    "description": "Код ошибки 422 (validation_error, unprocessable_entity)"
+  },
   "conflictError": "Запрос не удалось выполнить из-за конфликта с текущим состоянием ресурса.",
+  "@conflictError": {
+    "description": "Код ошибки 409 (conflict)"
+  },
   "requestTimeoutError": "Запрос не удался, пожалуйста, попробуйте позже.",
+  "@requestTimeoutError": {
+    "description": "Код ошибки 408 (request_timeout)"
+  },
   "notFoundError": "Запрошенный ресурс не найден.",
+  "@notFoundError": {
+    "description": "Код ошибки 404 (not_found)"
+  },
   "forbiddenError": "У вас нет разрешения на доступ к запрошенному ресурсу.",
+  "@forbiddenError": {
+    "description": "Код ошибки 403 (forbidden)"
+  },
   "unauthorizedError": "У вас нет разрешения на доступ к запрошенному ресурсу.",
+  "@unauthorizedError": {
+    "description": "Код ошибки 401 (unauthorized)"
+  },
   "badRequestError": "Запрос был неправильно сформирован или недействителен.",
+  "@badRequestError": {
+    "description": "Код ошибки 400 (bad_request)"
+  },
   "clientError": "Произошла ошибка клиента, пожалуйста, проверьте свой запрос.",
+  "@clientError": {
+    "description": "Код ошибки 4xx (client_error)"
+  },
   "redirectionError": "Запрос был перенаправлен, пожалуйста, проверьте URL-адрес.",
+  "@redirectionError": {
+    "description": "Код ошибки 3xx (redirection)"
+  },
   "unknownError": "Произошла неизвестная ошибка, пожалуйста, попробуйте позже.",
+  "@unknownError": {
+    "description": "unknown_error"
+  },
   "timeoutError": "Запрос не удался, пожалуйста, попробуйте позже.",
+  "@timeoutError": {
+    "description": "timeout_error"
+  },
   "networkError": "Не удалось отправить запрос из-за сетевой ошибки. Пожалуйста, проверьте подключение к интернету.",
-  "defaultError": "Произошла ошибка при обработке запроса."
+  "@networkError": {
+    "description": "network_error"
+  },
+  "defaultError": "При обработке запроса произошла ошибка.",
+  "@defaultError": {
+    "description": "Ошибка по умолчанию _"
+  }
 }

@@ -38,9 +38,26 @@ function inspectGeneratedRuntime(modulePath) {
         supportedLocales: [...generated.supportedLocales],
         bucketNames: [...generated.bucketNames],
         resolvedLocale: generated.resolveLocale('en-US'),
-        localeChain: generated.getLocaleChain('pt-BR'),
+        localeChain: generated.getLocaleChain('pt-br'),
+        bucketLocaleChain: generated.getBucketLocaleChain('app', 'pt-BR'),
+        bucketBaseLocales: generated.bucketBaseLocales,
         subtitleMeta: generated.getMessageMeta('todo', 'subtitle'),
         formattedSubtitle: generated.formatMessage('Tasks: {count}', { count: 3 }),
+        missingParams: generated.formatMessage('Hello {name}'),
+        partialParams: generated.formatMessage('Hello {name}, age {age}', {
+          name: 'Ada',
+        }),
+        pluralOne: generated.formatMessage(
+          '{count, plural, one {# task} other {# tasks}}',
+          { count: 1 },
+          'en',
+        ),
+        pluralMany: generated.formatMessage(
+          '{count, plural, one {# задача} few {# задачи} many {# задач} other {# задачи}}',
+          { count: 5 },
+          'ru',
+        ),
+        fallbackTitle: await generated.translate('app', 'title', 'ru'),
       }));
     `;
 
@@ -114,6 +131,7 @@ test('buildGeneratedManifest derives locales, bucket metadata, and file paths', 
   expect(manifest.bucketNames).toEqual(['app', 'todo']);
   expect(manifest.localeNames).toEqual(['en', 'ru']);
   expect(manifest.bucketLocales.todo).toEqual(['ru']);
+  expect(manifest.bucketBaseLocales).toEqual({ app: 'en', todo: 'ru' });
   expect(manifest.bucketDefinitions.todo.messages[0].placeholders).toEqual([
     { name: 'count', type: 'int' },
   ]);
@@ -155,6 +173,9 @@ test('createTsIndexSource exposes documented runtime helpers', () => {
   expect(source).toMatch(/export async function loadLocaleFacade/);
   expect(source).toMatch(/export function createLocaleFacade/);
   expect(source).toMatch(/"subtitle": \{ "count": number \};/);
+  expect(source).toContain(
+    "import IntlMessageFormat from './sheety-message-format.js';",
+  );
 });
 
 test('createJsIndexSource emits helper docs and loader exports', () => {
@@ -176,6 +197,9 @@ test('createJsIndexSource emits helper docs and loader exports', () => {
   expect(source).toMatch(/Read generated metadata for a bucket message key\./);
   expect(source).toMatch(/export function getLocaleChain\(locale\)/);
   expect(source).toMatch(/export async function loadLocales\(\)/);
+  expect(source).toContain(
+    "import IntlMessageFormat from './sheety-message-format.js';",
+  );
 });
 
 test('generateIndexTs and generateIndexJs write files and cleanupStaleIndexFiles removes opposite variant', async () => {
@@ -210,6 +234,12 @@ test('generateIndexTs and generateIndexJs write files and cleanupStaleIndexFiles
     expect(readFileSync(indexJsPath, 'utf8')).toMatch(
       /export const supportedLocales/,
     );
+    expect(
+      readFileSync(path.join(tempRoot, 'sheety-message-format.js'), 'utf8'),
+    ).toMatch(/IntlMessageFormat/);
+    expect(
+      readFileSync(path.join(tempRoot, 'sheety-message-format.d.ts'), 'utf8'),
+    ).toMatch(/declare class IntlMessageFormat/);
 
     cleanupStaleIndexFiles(tempRoot, 'ts');
     expect(readFileSync(indexTsPath, 'utf8')).toMatch(
@@ -266,6 +296,7 @@ test('generated runtime file can be imported and used against generated locale j
         en: {
           title: 'Hello',
         },
+        ru: {},
       },
       todo: {
         en: {
@@ -295,10 +326,12 @@ test('generated runtime file can be imported and used against generated locale j
     );
 
     expect(generated.baseLocale).toBe('en');
-    expect(generated.supportedLocales).toEqual(['en']);
+    expect(generated.supportedLocales).toEqual(['en', 'ru']);
     expect(generated.bucketNames).toEqual(['app', 'todo']);
     expect(generated.resolvedLocale).toBe('en');
     expect(generated.localeChain).toEqual(['pt_BR', 'pt', 'en']);
+    expect(generated.bucketLocaleChain).toEqual(['en']);
+    expect(generated.bucketBaseLocales).toEqual({ app: 'en', todo: 'en' });
     expect(generated.subtitleMeta).toEqual({
       placeholders: {
         count: {
@@ -307,6 +340,11 @@ test('generated runtime file can be imported and used against generated locale j
       },
     });
     expect(generated.formattedSubtitle).toBe('Tasks: 3');
+    expect(generated.missingParams).toBe('Hello {name}');
+    expect(generated.partialParams).toBe('Hello Ada, age {age}');
+    expect(generated.pluralOne).toBe('1 task');
+    expect(generated.pluralMany).toBe('5 задач');
+    expect(generated.fallbackTitle).toBe('Hello');
   } finally {
     await rm(tempRoot, { recursive: true, force: true });
   }

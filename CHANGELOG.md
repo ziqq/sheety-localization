@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.3.0 - 2026-09-14
+- **ADDED**: Example generated-localization contract tests covering every locale, bucket, key, metadata entry, and generated facade message.
+- **ADDED**: Immutable `v0.2.2` localization baseline and regression checks for all 66 message values, legacy runtime exports, and placeholder formatting.
+- **ADDED**: `sheety-localize` JavaScript CLI for OpenAI-assisted empty-cell localization with dry-run by default, opt-in `--write`, structured Responses API output, bounded concurrency, retries, and Google Sheets batch writes.
+- **ADDED**: ICU MessageFormat support for plural, select, number, and date messages in generated JavaScript and TypeScript runtimes.
+- **CHANGED**: Column D is now the explicit source locale for each bucket instead of assuming English.
+- **CHANGED**: Generated runtimes now merge source, language, and regional dictionaries for per-key fallback.
+- **CHANGED**: Descriptions are preserved in message metadata and merged with JSON `meta` objects.
+- **CHANGED**: Updated `googleapis` from 170.x to 178.x and refreshed transitive dependencies.
+- **CHANGED**: Raised the supported Node.js version to `>=20.19.0`; generated JavaScript runtimes now use JSON import attributes and require a compatible runtime or bundler.
+- **CHANGED**: Expanded source documentation for generator, runtime, validation, retry, rate-limit, and external API boundaries.
+- **FIXED**: Strict sheet/header validation now rejects invalid locale headers, normalized locale collisions, duplicate sanitized labels, and colliding sanitized sheet names.
+- **FIXED**: Generated runtimes now include their ICU formatter beside the index and no longer require consumers to install `intl-messageformat`.
+- **FIXED**: `formatMessage()` preserves the previous soft fallback for missing or partial placeholder parameters.
+- **FIXED**: Updated the transitive `qs` dependency to a version without the reported denial-of-service advisories.
+
 ## 0.2.2
 - **ADDED**: Regression coverage for symlinked CLI entry paths to prevent future releases from silently skipping `main()` when launched from the installed npm executable.
 - **FIXED**: Global npm CLI execution now works when `sheety-localization` is launched through a symlinked package bin, such as the binary installed by `npm install -g`.

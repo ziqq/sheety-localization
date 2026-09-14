@@ -1,5 +1,7 @@
 // This file is generated, do not edit it manually!
 
+import IntlMessageFormat from './sheety-message-format.js';
+
 type LocaleModule = { default: Record<string, unknown> };
 type LocaleLoader = () => Promise<LocaleModule>;
 type LocaleDictionary = Record<string, unknown>;
@@ -77,9 +79,89 @@ export const bucketKeys: Record<BucketName, readonly string[]> = {
 };
 
 export const messageMeta: Record<BucketName, Partial<Record<string, MessageMeta>>> = {
-  "app": {},
-  "errors": {},
+  "app": {
+    "language": {
+      "description": "Язык"
+    },
+    "languageCode": {
+      "description": "Код языка"
+    },
+    "localeCode": {
+      "description": "Код локализации"
+    },
+    "title": {
+      "description": "Название приложения"
+    }
+  },
+  "errors": {
+    "badGatewayError": {
+      "description": "Код ошибки 502 (bad_gateway)"
+    },
+    "badRequestError": {
+      "description": "Код ошибки 400 (bad_request)"
+    },
+    "bandwidthLimitExceededError": {
+      "description": "Код ошибки 509 (bandwidth_limit_exceeded)"
+    },
+    "clientError": {
+      "description": "Код ошибки 4xx (client_error)"
+    },
+    "conflictError": {
+      "description": "Код ошибки 409 (conflict)"
+    },
+    "defaultError": {
+      "description": "Ошибка по умолчанию _"
+    },
+    "forbiddenError": {
+      "description": "Код ошибки 403 (forbidden)"
+    },
+    "gatewayTimeoutError": {
+      "description": "Код ошибки 504 (gateway_timeout)"
+    },
+    "internalServerError": {
+      "description": "Код ошибки 500 (internal_server_error)"
+    },
+    "networkError": {
+      "description": "network_error"
+    },
+    "notFoundError": {
+      "description": "Код ошибки 404 (not_found)"
+    },
+    "notImplementedError": {
+      "description": "Код ошибки 501 (not_implemented)"
+    },
+    "redirectionError": {
+      "description": "Код ошибки 3xx (redirection)"
+    },
+    "requestTimeoutError": {
+      "description": "Код ошибки 408 (request_timeout)"
+    },
+    "serverError": {
+      "description": "Код ошибки 5xx (server_error)"
+    },
+    "serviceUnavailableError": {
+      "description": "Код ошибки 503 (service_unavailable)"
+    },
+    "timeoutError": {
+      "description": "timeout_error"
+    },
+    "tooManyRequestsError": {
+      "description": "Код ошибки 429 (too_many_requests)"
+    },
+    "unauthorizedError": {
+      "description": "Код ошибки 401 (unauthorized)"
+    },
+    "unknownError": {
+      "description": "unknown_error"
+    },
+    "validationError": {
+      "description": "Код ошибки 422 (validation_error, unprocessable_entity)"
+    }
+  },
   "todo": {
+    "addButton": {
+      "description": "Кнопка добавить задачу"
+    },
     "subtitle": {
       "placeholders": {
         "numberOfTasks": {
@@ -224,21 +306,27 @@ export const bucketLocales: Record<BucketName, readonly SupportedLocale[]> = {
   "todo": ["en", "ru"],
 };
 
+export const bucketBaseLocales: Record<BucketName, SupportedLocale> = {
+  "app": "en",
+  "errors": "en",
+  "todo": "en",
+};
+
 const localeSet = new Set<string>(supportedLocales);
 const bucketSet = new Set<string>(bucketNames);
 
 export const locales: Record<BucketName, Partial<Record<SupportedLocale, LocaleLoader>>> = {
   "app": {
-    "en": () => import("./app/app_en.json"),
-    "ru": () => import("./app/app_ru.json"),
+    "en": () => import("./app/app_en.json", { with: { type: 'json' } }),
+    "ru": () => import("./app/app_ru.json", { with: { type: 'json' } }),
   },
   "errors": {
-    "en": () => import("./errors/app_en.json"),
-    "ru": () => import("./errors/app_ru.json"),
+    "en": () => import("./errors/app_en.json", { with: { type: 'json' } }),
+    "ru": () => import("./errors/app_ru.json", { with: { type: 'json' } }),
   },
   "todo": {
-    "en": () => import("./todo/app_en.json"),
-    "ru": () => import("./todo/app_ru.json"),
+    "en": () => import("./todo/app_en.json", { with: { type: 'json' } }),
+    "ru": () => import("./todo/app_ru.json", { with: { type: 'json' } }),
   },
 };
 
@@ -246,7 +334,12 @@ export const locales: Record<BucketName, Partial<Record<SupportedLocale, LocaleL
  * Normalize locale separators and trim extra whitespace.
  */
 export function normalizeLocale(locale: string): string {
-  return locale.replace(/-/g, '_').trim();
+  const candidate = locale.trim().replace(/_/g, '-');
+  try {
+    return Intl.getCanonicalLocales(candidate)[0].replace(/-/g, '_');
+  } catch {
+    return candidate.replace(/-/g, '_');
+  }
 }
 
 /**
@@ -282,15 +375,29 @@ export function getMessageMeta<TBucket extends BucketName, TKey extends MessageK
  */
 export function getLocaleChain(locale: string): string[] {
   const normalized = normalizeLocale(locale);
-  const chain = normalized ? [normalized] : [];
-  const separatorIndex = normalized.indexOf('_');
-  if (separatorIndex > 0) {
-    chain.push(normalized.slice(0, separatorIndex));
+  const chain: string[] = [];
+  const parts = normalized.split('_').filter(Boolean);
+  while (parts.length) {
+    chain.push(parts.join('_'));
+    parts.pop();
   }
   if (!chain.includes(baseLocale)) {
     chain.push(baseLocale);
   }
   return chain.filter(Boolean);
+}
+
+/**
+ * Build the available locale chain for a bucket, from most specific to its source locale.
+ */
+export function getBucketLocaleChain(bucket: BucketName, locale: string): SupportedLocale[] {
+  const availableLocales = bucketLocales[bucket];
+  const bucketBaseLocale = bucketBaseLocales[bucket];
+  const chain = getLocaleChain(locale).filter((candidate): candidate is SupportedLocale => availableLocales.includes(candidate as SupportedLocale));
+  if (!chain.includes(bucketBaseLocale)) {
+    chain.push(bucketBaseLocale);
+  }
+  return [...new Set(chain)];
 }
 
 /**
@@ -309,58 +416,67 @@ export function resolveLocale(locale: string): SupportedLocale {
  * Resolve a locale for a specific bucket using regional fallback.
  */
 export function resolveBucketLocale(bucket: BucketName, locale: string): SupportedLocale {
-  const availableLocales = bucketLocales[bucket];
-  for (const candidate of getLocaleChain(locale)) {
-    if (availableLocales.includes(candidate as SupportedLocale)) {
-      return candidate as SupportedLocale;
-    }
-  }
-  return availableLocales[0] ?? baseLocale;
+  return getBucketLocaleChain(bucket, locale)[0] ?? bucketBaseLocales[bucket];
 }
 
 /**
  * Load a single generated bucket dictionary for the best matching locale.
  */
-export async function loadBucket(bucket: BucketName, locale: string): Promise<LocaleDictionary> {
-  const resolvedLocale = resolveBucketLocale(bucket, locale);
-  const loader = locales[bucket][resolvedLocale];
-  if (!loader) {
-    throw new Error(`Missing locale loader for bucket '${bucket}' and locale '${resolvedLocale}'.`);
-  }
-  const module = await loader();
-  return module.default;
+export async function loadBucket(bucket: BucketName, locale: string): Promise<Record<string, unknown>> {
+  const chain = getBucketLocaleChain(bucket, locale).reverse();
+  const dictionaries = await Promise.all(chain.map(async (candidate) => {
+    const loader = locales[bucket][candidate];
+    if (!loader) {
+      throw new Error(`Missing locale loader for bucket '${bucket}' and locale '${candidate}'.`);
+    }
+    return (await loader()).default;
+  }));
+  return Object.assign({}, ...dictionaries);
 }
 
+const messageFormatCache = new Map<string, IntlMessageFormat>();
+
 /**
- * Replace {placeholders} in a loaded message template.
+ * Format an ICU message using locale-aware plural, select, date, and number rules.
  */
-export function formatMessage(template: string, params?: Record<string, unknown>): string {
+export function formatMessage(template: string, params?: Record<string, unknown>, locale: string = baseLocale): string {
   if (!params) {
     return template;
   }
-  return template.replace(/\{(\w+)\}/g, (match, key) => (key in params ? String(params[key]) : match));
+  const normalizedLocale = normalizeLocale(locale).replace(/_/g, '-');
+  const cacheKey = `${normalizedLocale}\u0000${template}`;
+  let formatter = messageFormatCache.get(cacheKey);
+  if (!formatter) {
+    formatter = new IntlMessageFormat(template, normalizedLocale);
+    messageFormatCache.set(cacheKey, formatter);
+  }
+  try {
+    const formatted = formatter.format(params);
+    return Array.isArray(formatted) ? formatted.join('') : String(formatted);
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'MISSING_VALUE') {
+      return template.replace(/\{(\w+)\}/g, (match, key) => key in params ? String(params[key]) : match);
+    }
+    throw error;
+  }
 }
 
 /**
  * Format a message key from an already loaded bucket dictionary.
  */
-export function translateLoaded<TBucket extends BucketName, TKey extends MessageKey<TBucket>>(
-  bucket: TBucket,
-  key: TKey,
-  dictionary: LocaleDictionary,
-  params?: MessageParams<TBucket, TKey>,
-): string {
+export function translateLoaded<TBucket extends BucketName, TKey extends MessageKey<TBucket>>(bucket: TBucket, key: TKey, dictionary: Record<string, unknown>, params?: MessageParams<TBucket, TKey>): string {
   const template = dictionary[key as string];
   if (typeof template !== 'string') {
     throw new Error(`Missing translation for key '${String(key)}' in bucket '${bucket}'.`);
   }
-  return formatMessage(template, params as Record<string, unknown> | undefined);
+  const locale = typeof dictionary['@@locale'] === 'string' ? dictionary['@@locale'] : baseLocale;
+  return formatMessage(template, params as Record<string, unknown> | undefined, locale);
 }
 
 /**
  * Create a synchronous bucket facade from an already loaded dictionary.
  */
-export function createLoadedBucketFacade<TBucket extends BucketName>(bucket: TBucket, dictionary: LocaleDictionary): LoadedBucketFacadeMap[TBucket] {
+export function createLoadedBucketFacade<TBucket extends BucketName>(bucket: TBucket, dictionary: Record<string, unknown>): LoadedBucketFacadeMap[TBucket] {
   switch (bucket) {
     case "app":
       return {
@@ -411,7 +527,7 @@ export function createLoadedBucketFacade<TBucket extends BucketName>(bucket: TBu
 /**
  * Create synchronous facades for all buckets from preloaded locale dictionaries.
  */
-export function createLoadedLocaleFacade(dictionaries: Record<BucketName, LocaleDictionary>): LoadedBucketFacadeMap {
+export function createLoadedLocaleFacade(dictionaries: Record<BucketName, Record<string, unknown>>): LoadedBucketFacadeMap {
   return {
     "app": createLoadedBucketFacade("app", dictionaries["app"]),
     "errors": createLoadedBucketFacade("errors", dictionaries["errors"]),
@@ -430,22 +546,17 @@ export async function loadLocaleFacade(locale: string): Promise<LoadedBucketFaca
 /**
  * Load all generated buckets for a single locale.
  */
-export async function loadLocale(locale: string): Promise<Record<BucketName, LocaleDictionary>> {
+export async function loadLocale(locale: string): Promise<Record<BucketName, Record<string, unknown>>> {
   const entries = await Promise.all(
-    bucketNames.map(async (bucket): Promise<[BucketName, LocaleDictionary]> => [bucket, await loadBucket(bucket, locale)])
+    bucketNames.map(async (bucket): Promise<[BucketName, Record<string, unknown>]> => [bucket, await loadBucket(bucket, locale)])
   );
-  return Object.fromEntries(entries) as Record<BucketName, LocaleDictionary>;
+  return Object.fromEntries(entries) as Record<BucketName, Record<string, unknown>>;
 }
 
 /**
  * Load a bucket and format a single message for the requested locale.
  */
-export async function translate<TBucket extends BucketName, TKey extends MessageKey<TBucket>>(
-  bucket: TBucket,
-  key: TKey,
-  locale: string,
-  params?: MessageParams<TBucket, TKey>,
-): Promise<string> {
+export async function translate<TBucket extends BucketName, TKey extends MessageKey<TBucket>>(bucket: TBucket, key: TKey, locale: string, params?: MessageParams<TBucket, TKey>): Promise<string> {
   const dictionary = await loadBucket(bucket, locale);
   return translateLoaded(bucket, key, dictionary, params);
 }
@@ -454,8 +565,7 @@ export async function translate<TBucket extends BucketName, TKey extends Message
  * Create an async bucket translator that resolves locale data on demand.
  */
 export function createBucketTranslator<TBucket extends BucketName>(bucket: TBucket, locale: string) {
-  return async <TKey extends MessageKey<TBucket>>(key: TKey, params?: MessageParams<TBucket, TKey>): Promise<string> =>
-    translate(bucket, key, locale, params);
+  return async <TKey extends MessageKey<TBucket>>(key: TKey, params?: MessageParams<TBucket, TKey>): Promise<string> => translate(bucket, key, locale, params);
 }
 
 /**
@@ -524,9 +634,9 @@ export function createLocaleFacade(locale: string): BucketFacadeMap {
 /**
  * Load all generated locales and all generated buckets.
  */
-export async function loadLocales(): Promise<Record<SupportedLocale, Record<BucketName, LocaleDictionary>>> {
+export async function loadLocales(): Promise<Record<SupportedLocale, Record<BucketName, Record<string, unknown>>>> {
   const entries = await Promise.all(
-    supportedLocales.map(async (locale): Promise<[SupportedLocale, Record<BucketName, LocaleDictionary>]> => [locale, await loadLocale(locale)])
+    supportedLocales.map(async (locale): Promise<[SupportedLocale, Record<BucketName, Record<string, unknown>>]> => [locale, await loadLocale(locale)])
   );
-  return Object.fromEntries(entries) as Record<SupportedLocale, Record<BucketName, LocaleDictionary>>;
+  return Object.fromEntries(entries) as Record<SupportedLocale, Record<BucketName, Record<string, unknown>>>;
 }

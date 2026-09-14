@@ -1,0 +1,15 @@
+{
+  "@@locale": "ru",
+  "@@author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
+  "@@comment": "v0.2.2 backward compatibility baseline",
+  "@@context": "Generated from the live Google Sheet on 2026-09-11",
+  "localeCode": "ru_RU",
+  "language": "Русский",
+  "languageCode": "ru",
+  "title": "Название приложения",
+  "welcomeTitle": "Добро пожаловать!",
+  "welcomeSubtitle": "Тут будет основной контент!",
+  "englishLabel": "Английский",
+  "russianLabel": "Русский",
+  "spanishLabel": "Испанский"
+}

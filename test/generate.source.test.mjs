@@ -12,6 +12,7 @@ const { __test__ } = await importGeneratorModule();
 const {
   buildIgnorePatterns,
   fetchSpreadsheet,
+  generateLocalizationData,
   generateLocalizationTable,
   getBaseLocale,
   isExecutedDirectly,
@@ -60,6 +61,7 @@ test('generateLocalizationTable adds regional fallback base locales', async () =
   expect(buckets.app.pt_BR.welcomeTitle).toBe('Ola {name}');
   expect(buckets.app.pt.welcomeTitle).toBe('Ola {name}');
   expect(buckets.app.pt['@welcomeTitle']).toEqual({
+    description: 'Greeting',
     placeholders: {
       name: {
         type: 'String',
@@ -68,14 +70,69 @@ test('generateLocalizationTable adds regional fallback base locales', async () =
   });
 });
 
+test('generateLocalizationData preserves source locales, descriptions, and rejects collisions', async () => {
+  const result = await generateLocalizationData([
+    {
+      title: 'account-settings',
+      values: [
+        ['label', 'description', 'meta', 'ru', 'pt-BR', 'pt_BR'],
+        ['welcome-title', 'Welcome heading', '', 'Привет', 'Olá', 'Duplicado'],
+        ['welcome_title', 'Duplicate key', '', 'Повтор', 'Repetido'],
+      ],
+    },
+    {
+      title: 'account_settings',
+      values: [
+        ['label', 'description', 'meta', 'en', 'ru'],
+        ['title', 'Collision', '', 'Title', 'Заголовок'],
+      ],
+    },
+    {
+      title: 'reference',
+      values: [
+        ['name', 'description', 'meta', 'Family', 'Region'],
+        ['value', '', '', 'One', 'Two'],
+      ],
+    },
+  ]);
+
+  expect(result.bucketSourceLocales).toEqual({ account_settings: 'ru' });
+  expect(Object.keys(result.buckets)).toEqual(['account_settings']);
+  expect(Object.keys(result.buckets.account_settings).sort()).toEqual([
+    'pt',
+    'pt_BR',
+    'ru',
+  ]);
+  expect(result.buckets.account_settings.ru['@welcome_title']).toEqual({
+    description: 'Welcome heading',
+  });
+  expect(result.buckets.account_settings.ru.welcome_title).toBe('Привет');
+  expect(console.error).toHaveBeenCalledWith(
+    '[ERROR]',
+    'Duplicate locale "pt_BR" at column F, ignoring',
+  );
+  expect(console.error).toHaveBeenCalledWith(
+    '[ERROR]',
+    'Duplicate label "welcome_title" at row 3, skipping',
+  );
+  expect(console.error).toHaveBeenCalledWith(
+    '[ERROR]',
+    'Sheet "account_settings" collides with an existing bucket "account_settings", skipping',
+  );
+  expect(console.error).toHaveBeenCalledWith(
+    '[ERROR]',
+    'Sheet "reference" has an invalid header; expected label | description | meta | <source> | <locale> ..., skipping',
+  );
+});
+
 test('generateLocalizationTable omits missing translations by default and can keep explicit empty values', async () => {
   const sheets = [
     {
       title: 'app',
       values: [
         ['label', 'description', 'meta', 'en', 'ru', 'fr'],
-        ['title', 'Greeting', 'Greeting meta', 'Hello', 'Privet'],
-        ['subtitle', 'Subtitle', 'Subtitle meta', 'Welcome', '', ''],
+        ['title', 'Greeting', '', 'Hello', 'Privet'],
+        ['subtitle', 'Subtitle', '', 'Welcome', '', ''],
       ],
     },
   ];
@@ -93,9 +150,13 @@ test('generateLocalizationTable omits missing translations by default and can ke
   expect(defaultBuckets.app.ru['@subtitle']).toBeUndefined();
 
   expect(includeEmptyBuckets.app.fr.title).toBe('');
-  expect(includeEmptyBuckets.app.fr['@title']).toBe('Greeting meta');
+  expect(includeEmptyBuckets.app.fr['@title']).toEqual({
+    description: 'Greeting',
+  });
   expect(includeEmptyBuckets.app.ru.subtitle).toBe('');
-  expect(includeEmptyBuckets.app.ru['@subtitle']).toBe('Subtitle meta');
+  expect(includeEmptyBuckets.app.ru['@subtitle']).toEqual({
+    description: 'Subtitle',
+  });
 });
 
 test('small helper functions keep locale and meta normalization behavior', () => {
@@ -127,12 +188,13 @@ test('generateLocalizationTable reports skipped rows and invalid json meta', asy
     {
       title: 'todo',
       values: [
-        ['label', 'description', 'meta', '', 'en', 'pt_BR'],
+        ['label', 'description', 'meta', 'en', '', 'pt_BR'],
         [],
         ['short'],
         ['', 'Missing label', ''],
-        ['status', 'Status', '{"broken":}', '', 'Open', 'Aberto'],
-        ['note', 'Note', 'Plain text meta', '', 'Hello', 'Ola'],
+        ['status', 'Status', '{"broken":}', 'Open', '', 'Aberto'],
+        ['note', 'Note', 'Plain text meta', 'Hello', '', 'Ola'],
+        ['orphan', 'Missing source', '', '', 'Перевод', 'Tradução'],
       ],
     },
   ]);
@@ -140,11 +202,12 @@ test('generateLocalizationTable reports skipped rows and invalid json meta', asy
   expect(Object.keys(buckets.todo).sort()).toEqual(['en', 'pt', 'pt_BR']);
   expect(buckets.todo.en.status).toBe('Open');
   expect(buckets.todo.pt.note).toBe('Ola');
-  expect(buckets.todo.en['@note']).toBe('Plain text meta');
-  expect(buckets.todo.en['@status']).toBeUndefined();
+  expect(buckets.todo.en['@note']).toEqual({ description: 'Note' });
+  expect(buckets.todo.en['@status']).toEqual({ description: 'Status' });
+  expect(buckets.todo.pt.orphan).toBeUndefined();
   expect(console.error).toHaveBeenCalledWith(
     '[ERROR]',
-    'Invalid locale header at column D, ignoring',
+    'Invalid locale header at column E, ignoring',
   );
   expect(console.error).toHaveBeenCalledWith(
     '[ERROR]',
@@ -161,6 +224,14 @@ test('generateLocalizationTable reports skipped rows and invalid json meta', asy
   expect(console.error).toHaveBeenCalledWith(
     '[ERROR]',
     'Invalid JSON in meta at row 5',
+  );
+  expect(console.error).toHaveBeenCalledWith(
+    '[ERROR]',
+    'Non-JSON meta at row 6, ignoring',
+  );
+  expect(console.error).toHaveBeenCalledWith(
+    '[ERROR]',
+    'Missing source locale value at row 7, skipping',
   );
 });
 
@@ -370,7 +441,7 @@ test('main generates locale files from mocked sheets api using meta file and ts 
           data: {
             values: [
               ['label', 'description', 'meta', 'en', 'ru'],
-              ['title', 'Title', 'Greeting', 'Hello', 'Privet'],
+              ['title', 'Title', '', 'Hello', 'Privet'],
             ],
           },
         });
@@ -488,7 +559,7 @@ test('main supports explicit missing-cell semantics and disabling @@last_modifie
             data: {
               values: [
                 ['label', 'description', 'meta', 'en', 'ru', 'fr'],
-                ['title', 'Title', 'Greeting', 'Hello', 'Privet'],
+                ['title', 'Title', '', 'Hello', 'Privet'],
               ],
             },
           }),
@@ -517,7 +588,7 @@ test('main supports explicit missing-cell semantics and disabling @@last_modifie
       readFileSync(path.join(outputDir, 'app', 'fr.json'), 'utf8'),
     );
     expect(appFr.title).toBe('');
-    expect(appFr['@title']).toBe('Greeting');
+    expect(appFr['@title']).toEqual({ description: 'Title' });
     expect(appFr['@@last_modified']).toBeUndefined();
   } finally {
     await rm(tempRoot, { recursive: true, force: true });

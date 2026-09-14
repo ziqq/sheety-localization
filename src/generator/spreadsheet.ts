@@ -1,7 +1,20 @@
 import { google } from 'googleapis';
 
-import { compareStrings, err, getBaseLocale, log, sanitize } from './shared.js';
-import type { LocalizationBuckets, SheetValues } from './types.js';
+import {
+  compareStrings,
+  err,
+  getBaseLocale,
+  isLocaleCode,
+  isRecord,
+  log,
+  normalizeLocaleCode,
+  sanitize,
+} from './shared.js';
+import type {
+  GeneratedLocalizationTable,
+  LocalizationBuckets,
+  SheetValues,
+} from './types.js';
 
 function getColumnNameFromIndex(index: number): string {
   let name = '';
@@ -13,6 +26,7 @@ function getColumnNameFromIndex(index: number): string {
   return name;
 }
 
+/** Compile comma-separated sheet ignore expressions, skipping invalid regexes. */
 export function buildIgnorePatterns(
   patternString: string | undefined,
 ): RegExp[] {
@@ -35,6 +49,11 @@ export function buildIgnorePatterns(
     .filter((regexp): regexp is RegExp => regexp !== null);
 }
 
+/**
+ * Fetch sheet metadata first, then read usable tabs with bounded concurrency.
+ * Results retain spreadsheet order even when value requests finish out of
+ * order, which keeps generated output and logs deterministic.
+ */
 export async function fetchSpreadsheet(
   auth: any,
   spreadsheetId: string,
@@ -62,7 +81,7 @@ export async function fetchSpreadsheet(
   }
 
   const sheetList = metadata.data.sheets ?? [];
-  const result: SheetValues[] = [];
+  const result: (SheetValues | undefined)[] = new Array(sheetList.length);
   let skippedByInsufficient = 0;
   let skippedByIgnore = 0;
   let index = 0;
@@ -100,7 +119,7 @@ export async function fetchSpreadsheet(
           continue;
         }
 
-        result.push({ title, values });
+        result[currentIndex] = { title, values };
       } catch (error) {
         err(`Error fetching values for sheet "${title}": ${error}`);
       }
@@ -114,25 +133,67 @@ export async function fetchSpreadsheet(
   await Promise.all(workers);
 
   log(
-    `Spreadsheet summary: total sheets=${sheetList.length}, usable=${result.length}, ignored=${skippedByIgnore}, insufficient=${skippedByInsufficient}`,
+    `Spreadsheet summary: total sheets=${sheetList.length}, usable=${result.filter(Boolean).length}, ignored=${skippedByIgnore}, insufficient=${skippedByInsufficient}`,
   );
-  return result;
+  return result.filter((sheet): sheet is SheetValues => sheet !== undefined);
 }
 
-export async function generateLocalizationTable(
+function hasLocalizationHeader(header: unknown[]): boolean {
+  const expected = ['label', 'description', 'meta'];
+  return expected.every(
+    (name, index) =>
+      typeof header[index] === 'string' &&
+      header[index].trim().toLowerCase() === name,
+  );
+}
+
+/**
+ * Validate localization tabs and convert rows into per-bucket dictionaries.
+ * Column D is authoritative: it defines both the source locale and the schema
+ * keys. Regional locale columns also feed an automatically created base-language
+ * bucket so runtime fallback can merge source -> language -> region per key.
+ */
+export async function generateLocalizationData(
   sheets: SheetValues[],
   {
     includeEmpty = false,
   }: {
     includeEmpty?: boolean;
   } = {},
-): Promise<LocalizationBuckets> {
+): Promise<GeneratedLocalizationTable> {
   const buckets: LocalizationBuckets = {};
+  const bucketSourceLocales: Record<string, string> = {};
 
   for (const { title, values } of sheets) {
     const bucket = sanitize(title);
-    buckets[bucket] = {};
+    if (!bucket) {
+      err(`Sheet "${title}" has an invalid title after sanitization, skipping`);
+      continue;
+    }
+    if (Object.prototype.hasOwnProperty.call(buckets, bucket)) {
+      err(`Sheet "${title}" collides with an existing bucket "${bucket}", skipping`);
+      continue;
+    }
+
     const header = values[0] as unknown[];
+    if (!hasLocalizationHeader(header)) {
+      err(
+        `Sheet "${title}" has an invalid header; expected label | description | meta | <source> | <locale> ..., skipping`,
+      );
+      continue;
+    }
+
+    const sourceHeader = header[3];
+    if (typeof sourceHeader !== 'string' || !isLocaleCode(sourceHeader)) {
+      err(
+        `Sheet "${title}" has an invalid source locale in column D, skipping`,
+      );
+      continue;
+    }
+
+    const sourceLocale = sanitize(normalizeLocaleCode(sourceHeader));
+    buckets[bucket] = {};
+    bucketSourceLocales[bucket] = sourceLocale;
     const locales: (string[] | null)[] = [];
     const existingLocales = new Set<string>();
     let addedFallbackLocales = 0;
@@ -140,10 +201,18 @@ export async function generateLocalizationTable(
     for (let columnIndex = 3; columnIndex < header.length; columnIndex++) {
       const localeCell = header[columnIndex];
       if (typeof localeCell === 'string' && localeCell.trim()) {
-        const locale = sanitize(localeCell);
-        if (!locale) {
+        if (!isLocaleCode(localeCell)) {
           err(
             `Invalid locale header at column ${getColumnNameFromIndex(columnIndex)}, ignoring`,
+          );
+          locales[columnIndex] = null;
+          continue;
+        }
+
+        const locale = sanitize(normalizeLocaleCode(localeCell));
+        if (existingLocales.has(locale)) {
+          err(
+            `Duplicate locale "${locale}" at column ${getColumnNameFromIndex(columnIndex)}, ignoring`,
           );
           locales[columnIndex] = null;
           continue;
@@ -183,7 +252,10 @@ export async function generateLocalizationTable(
 
     let skippedEmptyRows = 0;
     let skippedEmptyLabels = 0;
+    let skippedDuplicateLabels = 0;
+    let skippedMissingSource = 0;
     let processedRows = 0;
+    const existingKeys = new Set<string>();
 
     for (let rowIndex = 1; rowIndex < values.length; rowIndex++) {
       const row = (values[rowIndex] as unknown[]) || [];
@@ -212,20 +284,54 @@ export async function generateLocalizationTable(
       }
 
       const key = sanitize(label);
+      if (!key) {
+        err(`Invalid label at row ${rowIndex + 1}, skipping`);
+        skippedEmptyLabels++;
+        continue;
+      }
+      if (existingKeys.has(key)) {
+        err(`Duplicate label "${key}" at row ${rowIndex + 1}, skipping`);
+        skippedDuplicateLabels++;
+        continue;
+      }
+
+      const sourceValue = row[3];
+      if (sourceValue == null || String(sourceValue).trim() === '') {
+        err(
+          `Missing source locale value at row ${rowIndex + 1}, skipping`,
+        );
+        skippedMissingSource++;
+        continue;
+      }
+      existingKeys.add(key);
+
+      const descriptionRaw = row[1];
+      const description =
+        typeof descriptionRaw === 'string' && descriptionRaw.trim()
+          ? descriptionRaw.trim()
+          : null;
       const metaRaw = row[2] ?? '';
-      let metaObject: Record<string, unknown> | null = null;
-      let metaText: string | null = null;
+      const metaObject: Record<string, unknown> = {
+        ...(description ? { description } : {}),
+      };
       if (typeof metaRaw === 'string') {
         const trimmed = metaRaw.trim();
         if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
           try {
-            metaObject = JSON.parse(trimmed) as Record<string, unknown>;
+            const parsed = JSON.parse(trimmed) as unknown;
+            if (isRecord(parsed)) {
+              Object.assign(metaObject, parsed);
+            } else {
+              err(`Invalid JSON object in meta at row ${rowIndex + 1}`);
+            }
           } catch {
             err(`Invalid JSON in meta at row ${rowIndex + 1}`);
           }
         } else if (trimmed.length > 0) {
-          metaText = trimmed;
+          err(`Non-JSON meta at row ${rowIndex + 1}, ignoring`);
         }
+      } else if (isRecord(metaRaw)) {
+        Object.assign(metaObject, metaRaw);
       }
 
       for (let columnIndex = 3; columnIndex < header.length; columnIndex++) {
@@ -244,10 +350,8 @@ export async function generateLocalizationTable(
         const text = cell != null ? String(cell) : '';
         for (const locale of localeTargets) {
           buckets[bucket][locale][key] = text;
-          if (metaObject && Object.keys(metaObject).length) {
+          if (Object.keys(metaObject).length) {
             buckets[bucket][locale][`@${key}`] = metaObject;
-          } else if (metaText) {
-            buckets[bucket][locale][`@${key}`] = metaText;
           }
         }
       }
@@ -256,9 +360,20 @@ export async function generateLocalizationTable(
     }
 
     log(
-      `Sheet "${title}" summary: locales=[${[...existingLocales].sort(compareStrings).join(', ')}], addedFallbackLocales=${addedFallbackLocales}, processed=${processedRows}, skippedEmptyRows=${skippedEmptyRows}, skippedEmptyLabels=${skippedEmptyLabels}`,
+      `Sheet "${title}" summary: sourceLocale=${sourceLocale}, locales=[${[...existingLocales].sort(compareStrings).join(', ')}], addedFallbackLocales=${addedFallbackLocales}, processed=${processedRows}, skippedEmptyRows=${skippedEmptyRows}, skippedEmptyLabels=${skippedEmptyLabels}, skippedDuplicateLabels=${skippedDuplicateLabels}, skippedMissingSource=${skippedMissingSource}`,
     );
   }
 
-  return buckets;
+  return { buckets, bucketSourceLocales };
+}
+
+/**
+ * Compatibility wrapper for callers that only need generated dictionaries and
+ * do not consume per-bucket source locale metadata.
+ */
+export async function generateLocalizationTable(
+  sheets: SheetValues[],
+  options: { includeEmpty?: boolean } = {},
+): Promise<LocalizationBuckets> {
+  return (await generateLocalizationData(sheets, options)).buckets;
 }

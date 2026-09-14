@@ -1,28 +1,90 @@
 {
   "@@locale": "en",
   "@@author": "Anton Ustinoff <a.a.ustinoff@gmail.com>",
-  "@@last_modified": "2025-08-07T11:35:25.709Z",
   "@@comment": "Generated from Google Sheets",
   "@@context": "From Google Sheets",
   "bandwidthLimitExceededError": "The request exceeded the bandwidth limit.",
+  "@bandwidthLimitExceededError": {
+    "description": "Код ошибки 509 (bandwidth_limit_exceeded)"
+  },
   "gatewayTimeoutError": "The server did not receive a timely response from the upstream server.",
+  "@gatewayTimeoutError": {
+    "description": "Код ошибки 504 (gateway_timeout)"
+  },
   "serviceUnavailableError": "The service is currently unavailable, please try again later.",
+  "@serviceUnavailableError": {
+    "description": "Код ошибки 503 (service_unavailable)"
+  },
   "badGatewayError": "The server received an invalid response from the upstream server.",
+  "@badGatewayError": {
+    "description": "Код ошибки 502 (bad_gateway)"
+  },
   "notImplementedError": "The requested method is not implemented by the server.",
+  "@notImplementedError": {
+    "description": "Код ошибки 501 (not_implemented)"
+  },
   "internalServerError": "An internal server error occurred, please try again later.",
+  "@internalServerError": {
+    "description": "Код ошибки 500 (internal_server_error)"
+  },
   "serverError": "A server error occurred, please try again later.",
+  "@serverError": {
+    "description": "Код ошибки 5xx (server_error)"
+  },
   "tooManyRequestsError": "Too many requests, please try again later.",
+  "@tooManyRequestsError": {
+    "description": "Код ошибки 429 (too_many_requests)"
+  },
   "validationError": "The request data is invalid or malformed.",
+  "@validationError": {
+    "description": "Код ошибки 422 (validation_error, unprocessable_entity)"
+  },
   "conflictError": "The request could not be completed due to a conflict with the current state of the resource.",
+  "@conflictError": {
+    "description": "Код ошибки 409 (conflict)"
+  },
   "requestTimeoutError": "The request timed out, please try again later.",
+  "@requestTimeoutError": {
+    "description": "Код ошибки 408 (request_timeout)"
+  },
   "notFoundError": "The requested resource was not found.",
+  "@notFoundError": {
+    "description": "Код ошибки 404 (not_found)"
+  },
   "forbiddenError": "You do not have permission to access the requested resource.",
+  "@forbiddenError": {
+    "description": "Код ошибки 403 (forbidden)"
+  },
   "unauthorizedError": "You are not authorized to access the requested resource.",
+  "@unauthorizedError": {
+    "description": "Код ошибки 401 (unauthorized)"
+  },
   "badRequestError": "The request was malformed or invalid.",
+  "@badRequestError": {
+    "description": "Код ошибки 400 (bad_request)"
+  },
   "clientError": "A client error occurred, please check your request.",
+  "@clientError": {
+    "description": "Код ошибки 4xx (client_error)"
+  },
   "redirectionError": "The request was redirected, please check the URL.",
+  "@redirectionError": {
+    "description": "Код ошибки 3xx (redirection)"
+  },
   "unknownError": "An unknown error occurred, please try again later.",
+  "@unknownError": {
+    "description": "unknown_error"
+  },
   "timeoutError": "The request timed out, please try again later.",
+  "@timeoutError": {
+    "description": "timeout_error"
+  },
   "networkError": "Failed to send request due to a network error, please check your internet connection.",
-  "defaultError": "An error occurred while processing the request."
+  "@networkError": {
+    "description": "network_error"
+  },
+  "defaultError": "An error occurred while processing the request.",
+  "@defaultError": {
+    "description": "Ошибка по умолчанию _"
+  }
 }

@@ -18,11 +18,13 @@ function extractPlaceholderDefinitions(meta) {
             : {}));
     });
 }
-function buildBucketDefinition(locales) {
+function buildBucketDefinition(locales, sourceLocale) {
     var _a;
-    const schemaLocale = locales.en
-        ? 'en'
-        : Object.keys(locales).sort(compareStrings)[0];
+    const schemaLocale = sourceLocale && locales[sourceLocale]
+        ? sourceLocale
+        : locales.en
+            ? 'en'
+            : Object.keys(locales)[0];
     const schemaSource = (_a = (schemaLocale ? locales[schemaLocale] : {})) !== null && _a !== void 0 ? _a : {};
     const keys = Object.keys(schemaSource)
         .filter((key) => !key.startsWith('@'))
@@ -44,6 +46,7 @@ function literalUnion(values, fallback = 'string') {
         ? values.map((value) => JSON.stringify(value)).join(' | ')
         : fallback;
 }
+/** Map spreadsheet placeholder metadata to a conservative TypeScript type. */
 export function mapPlaceholderType(typeName) {
     switch (typeName.trim().toLowerCase()) {
         case 'string':
@@ -101,9 +104,11 @@ function pushDocComment(lines, ...description) {
     }
     lines.push(' */');
 }
+/** Count placeholder definitions for manifest diagnostics. */
 export function countBucketPlaceholders(bucketDefinition) {
     return bucketDefinition.messages.reduce((total, message) => total + message.placeholders.length, 0);
 }
+/** Log deterministic manifest totals used by local runs and CI diagnostics. */
 export function logManifestSummary(manifest) {
     const locales = manifest.localeNames.join(', ') || 'none';
     log(`Manifest summary: baseLocale=${manifest.baseLocale}, locales=[${locales}], buckets=${manifest.bucketNames.length}`);
@@ -142,17 +147,30 @@ function pushJsonConst(lines, declaration, value) {
     }
     lines.push(`${serialized[serialized.length - 1]};`);
 }
-export function buildGeneratedManifest(buckets, outputDir, prefix) {
-    var _a;
+/**
+ * Derive the complete runtime contract from generated dictionaries: stable
+ * bucket/locale order, source locale per bucket, message schemas, and relative
+ * import paths. No files are written at this stage.
+ */
+export function buildGeneratedManifest(buckets, outputDir, prefix, sourceLocales = {}) {
+    var _a, _b, _c;
     const bucketNames = Object.keys(buckets).sort(compareStrings);
     const bucketLocales = {};
+    const bucketBaseLocales = {};
     const bucketDefinitions = {};
     const localeNamesSet = new Set();
     const files = [];
     for (const bucket of bucketNames) {
         const localeNames = Object.keys(buckets[bucket]).sort(compareStrings);
         bucketLocales[bucket] = localeNames;
-        bucketDefinitions[bucket] = buildBucketDefinition(buckets[bucket]);
+        const requestedBaseLocale = sourceLocales[bucket];
+        bucketBaseLocales[bucket] =
+            requestedBaseLocale && localeNames.includes(requestedBaseLocale)
+                ? requestedBaseLocale
+                : localeNames.includes('en')
+                    ? 'en'
+                    : ((_b = (_a = Object.keys(buckets[bucket])[0]) !== null && _a !== void 0 ? _a : localeNames[0]) !== null && _b !== void 0 ? _b : '');
+        bucketDefinitions[bucket] = buildBucketDefinition(buckets[bucket], bucketBaseLocales[bucket]);
         for (const locale of localeNames) {
             localeNamesSet.add(locale);
             const fileName = `${prefix ? `${prefix}_` : ''}${locale}.json`;
@@ -166,10 +184,15 @@ export function buildGeneratedManifest(buckets, outputDir, prefix) {
         }
     }
     const localeNames = [...localeNamesSet].sort(compareStrings);
-    const baseLocale = localeNames.includes('en') ? 'en' : ((_a = localeNames[0]) !== null && _a !== void 0 ? _a : '');
+    const baseLocale = bucketNames.length
+        ? bucketBaseLocales[bucketNames[0]]
+        : localeNames.includes('en')
+            ? 'en'
+            : ((_c = localeNames[0]) !== null && _c !== void 0 ? _c : '');
     return {
         bucketNames,
         bucketLocales,
+        bucketBaseLocales,
         localeNames,
         baseLocale,
         files,
@@ -179,11 +202,18 @@ export function buildGeneratedManifest(buckets, outputDir, prefix) {
 function createTypeUnion(typeName, values) {
     return [`export type ${typeName} = ${literalUnion(values)};`];
 }
+/**
+ * Render the typed ESM runtime used by TypeScript consumers. The generated API
+ * includes manifests, locale fallback, lazy JSON loading, ICU formatting, and
+ * strongly typed bucket facades.
+ */
 export function createTsIndexSource(manifest) {
     const bucketKeys = buildBucketKeysObject(manifest);
     const messageMeta = buildMessageMetaObject(manifest);
     const lines = [
         '// This file is generated, do not edit it manually!',
+        '',
+        "import IntlMessageFormat from './sheety-message-format.js';",
         '',
         'type LocaleModule = { default: Record<string, unknown> };',
         'type LocaleLoader = () => Promise<LocaleModule>;',
@@ -257,20 +287,30 @@ export function createTsIndexSource(manifest) {
         lines.push(`  ${JSON.stringify(bucket)}: [${locales}],`);
     }
     lines.push('};', '');
+    lines.push('export const bucketBaseLocales: Record<BucketName, SupportedLocale> = {');
+    for (const bucket of manifest.bucketNames) {
+        lines.push(`  ${JSON.stringify(bucket)}: ${JSON.stringify(manifest.bucketBaseLocales[bucket])},`);
+    }
+    lines.push('};', '');
     lines.push('const localeSet = new Set<string>(supportedLocales);');
     lines.push('const bucketSet = new Set<string>(bucketNames);', '');
     lines.push('export const locales: Record<BucketName, Partial<Record<SupportedLocale, LocaleLoader>>> = {');
     for (const bucket of manifest.bucketNames) {
         lines.push(`  ${JSON.stringify(bucket)}: {`);
         for (const file of manifest.files.filter((entry) => entry.bucket === bucket)) {
-            lines.push(`    ${JSON.stringify(file.locale)}: () => import(${JSON.stringify(file.relativeImportPath)}),`);
+            lines.push(`    ${JSON.stringify(file.locale)}: () => import(${JSON.stringify(file.relativeImportPath)}, { with: { type: 'json' } }),`);
         }
         lines.push('  },');
     }
     lines.push('};', '');
     pushDocComment(lines, 'Normalize locale separators and trim extra whitespace.');
     lines.push('export function normalizeLocale(locale: string): string {');
-    lines.push("  return locale.replace(/-/g, '_').trim();");
+    lines.push("  const candidate = locale.trim().replace(/_/g, '-');");
+    lines.push('  try {');
+    lines.push("    return Intl.getCanonicalLocales(candidate)[0].replace(/-/g, '_');");
+    lines.push('  } catch {');
+    lines.push("    return candidate.replace(/-/g, '_');");
+    lines.push('  }');
     lines.push('}', '');
     pushDocComment(lines, 'Check whether a locale is available in the generated manifest.');
     lines.push('export function isLocale(locale: string): locale is SupportedLocale {');
@@ -291,15 +331,26 @@ export function createTsIndexSource(manifest) {
     pushDocComment(lines, 'Build locale fallback chain, for example pt_BR -> pt -> base locale.');
     lines.push('export function getLocaleChain(locale: string): string[] {');
     lines.push('  const normalized = normalizeLocale(locale);');
-    lines.push('  const chain = normalized ? [normalized] : [];');
-    lines.push("  const separatorIndex = normalized.indexOf('_');");
-    lines.push('  if (separatorIndex > 0) {');
-    lines.push('    chain.push(normalized.slice(0, separatorIndex));');
+    lines.push('  const chain: string[] = [];');
+    lines.push("  const parts = normalized.split('_').filter(Boolean);");
+    lines.push('  while (parts.length) {');
+    lines.push("    chain.push(parts.join('_'));");
+    lines.push('    parts.pop();');
     lines.push('  }');
     lines.push('  if (!chain.includes(baseLocale)) {');
     lines.push('    chain.push(baseLocale);');
     lines.push('  }');
     lines.push('  return chain.filter(Boolean);');
+    lines.push('}', '');
+    pushDocComment(lines, 'Build the available locale chain for a bucket, from most specific to its source locale.');
+    lines.push('export function getBucketLocaleChain(bucket: BucketName, locale: string): SupportedLocale[] {');
+    lines.push('  const availableLocales = bucketLocales[bucket];');
+    lines.push('  const bucketBaseLocale = bucketBaseLocales[bucket];');
+    lines.push('  const chain = getLocaleChain(locale).filter((candidate): candidate is SupportedLocale => availableLocales.includes(candidate as SupportedLocale));');
+    lines.push('  if (!chain.includes(bucketBaseLocale)) {');
+    lines.push('    chain.push(bucketBaseLocale);');
+    lines.push('  }');
+    lines.push('  return [...new Set(chain)];');
     lines.push('}', '');
     pushDocComment(lines, 'Resolve a locale against generated supported locales.');
     lines.push('export function resolveLocale(locale: string): SupportedLocale {');
@@ -312,30 +363,42 @@ export function createTsIndexSource(manifest) {
     lines.push('}', '');
     pushDocComment(lines, 'Resolve a locale for a specific bucket using regional fallback.');
     lines.push('export function resolveBucketLocale(bucket: BucketName, locale: string): SupportedLocale {');
-    lines.push('  const availableLocales = bucketLocales[bucket];');
-    lines.push('  for (const candidate of getLocaleChain(locale)) {');
-    lines.push('    if (availableLocales.includes(candidate as SupportedLocale)) {');
-    lines.push('      return candidate as SupportedLocale;');
-    lines.push('    }');
-    lines.push('  }');
-    lines.push('  return availableLocales[0] ?? baseLocale;');
+    lines.push('  return getBucketLocaleChain(bucket, locale)[0] ?? bucketBaseLocales[bucket];');
     lines.push('}', '');
     pushDocComment(lines, 'Load a single generated bucket dictionary for the best matching locale.');
     lines.push('export async function loadBucket(bucket: BucketName, locale: string): Promise<Record<string, unknown>> {');
-    lines.push('  const resolvedLocale = resolveBucketLocale(bucket, locale);');
-    lines.push('  const loader = locales[bucket][resolvedLocale];');
-    lines.push('  if (!loader) {');
-    lines.push("    throw new Error(`Missing locale loader for bucket '${bucket}' and locale '${resolvedLocale}'.`);");
-    lines.push('  }');
-    lines.push('  const module = await loader();');
-    lines.push('  return module.default;');
+    lines.push('  const chain = getBucketLocaleChain(bucket, locale).reverse();');
+    lines.push('  const dictionaries = await Promise.all(chain.map(async (candidate) => {');
+    lines.push('    const loader = locales[bucket][candidate];');
+    lines.push('    if (!loader) {');
+    lines.push("      throw new Error(`Missing locale loader for bucket '${bucket}' and locale '${candidate}'.`);");
+    lines.push('    }');
+    lines.push('    return (await loader()).default;');
+    lines.push('  }));');
+    lines.push('  return Object.assign({}, ...dictionaries);');
     lines.push('}', '');
-    pushDocComment(lines, 'Replace {placeholders} in a loaded message template.');
-    lines.push('export function formatMessage(template: string, params?: Record<string, unknown>): string {');
+    lines.push('const messageFormatCache = new Map<string, IntlMessageFormat>();', '');
+    pushDocComment(lines, 'Format an ICU message using locale-aware plural, select, date, and number rules.');
+    lines.push('export function formatMessage(template: string, params?: Record<string, unknown>, locale: string = baseLocale): string {');
     lines.push('  if (!params) {');
     lines.push('    return template;');
     lines.push('  }');
-    lines.push('  return template.replace(/\\{(\\w+)\\}/g, (match, key) => (key in params ? String(params[key]) : match));');
+    lines.push('  const normalizedLocale = normalizeLocale(locale).replace(/_/g, \'-\');');
+    lines.push('  const cacheKey = `${normalizedLocale}\\u0000${template}`;');
+    lines.push('  let formatter = messageFormatCache.get(cacheKey);');
+    lines.push('  if (!formatter) {');
+    lines.push('    formatter = new IntlMessageFormat(template, normalizedLocale);');
+    lines.push('    messageFormatCache.set(cacheKey, formatter);');
+    lines.push('  }');
+    lines.push('  try {');
+    lines.push('    const formatted = formatter.format(params);');
+    lines.push("    return Array.isArray(formatted) ? formatted.join('') : String(formatted);");
+    lines.push('  } catch (error) {');
+    lines.push("    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'MISSING_VALUE') {");
+    lines.push("      return template.replace(/\\{(\\w+)\\}/g, (match, key) => key in params ? String(params[key]) : match);");
+    lines.push('    }');
+    lines.push('    throw error;');
+    lines.push('  }');
     lines.push('}', '');
     pushDocComment(lines, 'Format a message key from an already loaded bucket dictionary.');
     lines.push('export function translateLoaded<TBucket extends BucketName, TKey extends MessageKey<TBucket>>(bucket: TBucket, key: TKey, dictionary: Record<string, unknown>, params?: MessageParams<TBucket, TKey>): string {');
@@ -343,7 +406,7 @@ export function createTsIndexSource(manifest) {
     lines.push("  if (typeof template !== 'string') {");
     lines.push("    throw new Error(`Missing translation for key '${String(key)}' in bucket '${bucket}'.`);");
     lines.push('  }');
-    lines.push('  return formatMessage(template, params as Record<string, unknown> | undefined);');
+    lines.push("  const locale = typeof dictionary['@@locale'] === 'string' ? dictionary['@@locale'] : baseLocale;", '  return formatMessage(template, params as Record<string, unknown> | undefined, locale);');
     lines.push('}', '');
     pushDocComment(lines, 'Create a synchronous bucket facade from an already loaded dictionary.');
     lines.push('export function createLoadedBucketFacade<TBucket extends BucketName>(bucket: TBucket, dictionary: Record<string, unknown>): LoadedBucketFacadeMap[TBucket] {');
@@ -432,11 +495,14 @@ export function createTsIndexSource(manifest) {
     lines.push('}');
     return lines.join('\n');
 }
+/** Render the JavaScript ESM equivalent of the generated TypeScript runtime. */
 export function createJsIndexSource(manifest) {
     const bucketKeys = buildBucketKeysObject(manifest);
     const messageMeta = buildMessageMetaObject(manifest);
     const lines = [
         '// This file is generated, do not edit it manually!',
+        '',
+        "import IntlMessageFormat from './sheety-message-format.js';",
         '',
         '/** @typedef {{ default: Record<string, unknown> }} LocaleModule */',
         '/** @typedef {() => Promise<LocaleModule>} LocaleLoader */',
@@ -460,6 +526,11 @@ export function createJsIndexSource(manifest) {
         lines.push(`  ${JSON.stringify(bucket)}: [${locales}],`);
     }
     lines.push('};', '');
+    lines.push('export const bucketBaseLocales = {');
+    for (const bucket of manifest.bucketNames) {
+        lines.push(`  ${JSON.stringify(bucket)}: ${JSON.stringify(manifest.bucketBaseLocales[bucket])},`);
+    }
+    lines.push('};', '');
     pushJsonConst(lines, 'export const bucketKeys', bucketKeys);
     lines.push('');
     pushJsonConst(lines, 'export const messageMeta', messageMeta);
@@ -471,14 +542,19 @@ export function createJsIndexSource(manifest) {
     for (const bucket of manifest.bucketNames) {
         lines.push(`  ${JSON.stringify(bucket)}: {`);
         for (const file of manifest.files.filter((entry) => entry.bucket === bucket)) {
-            lines.push(`    ${JSON.stringify(file.locale)}: () => import(${JSON.stringify(file.relativeImportPath)}),`);
+            lines.push(`    ${JSON.stringify(file.locale)}: () => import(${JSON.stringify(file.relativeImportPath)}, { with: { type: 'json' } }),`);
         }
         lines.push('  },');
     }
     lines.push('};', '');
     pushDocComment(lines, 'Normalize locale separators and trim extra whitespace.');
     lines.push('export function normalizeLocale(locale) {');
-    lines.push("  return locale.replace(/-/g, '_').trim();");
+    lines.push("  const candidate = String(locale ?? '').trim().replace(/_/g, '-');");
+    lines.push('  try {');
+    lines.push("    return Intl.getCanonicalLocales(candidate)[0].replace(/-/g, '_');");
+    lines.push('  } catch {');
+    lines.push("    return candidate.replace(/-/g, '_');");
+    lines.push('  }');
     lines.push('}', '');
     pushDocComment(lines, 'Check whether a locale is available in the generated manifest.');
     lines.push('export function isLocale(locale) {');
@@ -499,15 +575,26 @@ export function createJsIndexSource(manifest) {
     pushDocComment(lines, 'Build locale fallback chain, for example pt_BR -> pt -> base locale.');
     lines.push('export function getLocaleChain(locale) {');
     lines.push('  const normalized = normalizeLocale(locale);');
-    lines.push('  const chain = normalized ? [normalized] : [];');
-    lines.push("  const separatorIndex = normalized.indexOf('_');");
-    lines.push('  if (separatorIndex > 0) {');
-    lines.push('    chain.push(normalized.slice(0, separatorIndex));');
+    lines.push('  const chain = [];');
+    lines.push("  const parts = normalized.split('_').filter(Boolean);");
+    lines.push('  while (parts.length) {');
+    lines.push("    chain.push(parts.join('_'));");
+    lines.push('    parts.pop();');
     lines.push('  }');
     lines.push('  if (!chain.includes(baseLocale)) {');
     lines.push('    chain.push(baseLocale);');
     lines.push('  }');
     lines.push('  return chain.filter(Boolean);');
+    lines.push('}', '');
+    pushDocComment(lines, 'Build the available locale chain for a bucket, from most specific to its source locale.');
+    lines.push('export function getBucketLocaleChain(bucket, locale) {');
+    lines.push('  const availableLocales = bucketLocales[bucket] ?? [];');
+    lines.push('  const bucketBaseLocale = bucketBaseLocales[bucket];');
+    lines.push('  const chain = getLocaleChain(locale).filter((candidate) => availableLocales.includes(candidate));');
+    lines.push('  if (!chain.includes(bucketBaseLocale)) {');
+    lines.push('    chain.push(bucketBaseLocale);');
+    lines.push('  }');
+    lines.push('  return [...new Set(chain)];');
     lines.push('}', '');
     pushDocComment(lines, 'Resolve a locale against generated supported locales.');
     lines.push('export function resolveLocale(locale) {');
@@ -520,30 +607,42 @@ export function createJsIndexSource(manifest) {
     lines.push('}', '');
     pushDocComment(lines, 'Resolve a locale for a specific bucket using regional fallback.');
     lines.push('export function resolveBucketLocale(bucket, locale) {');
-    lines.push('  const availableLocales = bucketLocales[bucket] ?? [];');
-    lines.push('  for (const candidate of getLocaleChain(locale)) {');
-    lines.push('    if (availableLocales.includes(candidate)) {');
-    lines.push('      return candidate;');
-    lines.push('    }');
-    lines.push('  }');
-    lines.push('  return availableLocales[0] ?? baseLocale;');
+    lines.push('  return getBucketLocaleChain(bucket, locale)[0] ?? bucketBaseLocales[bucket];');
     lines.push('}', '');
     pushDocComment(lines, 'Load a single generated bucket dictionary for the best matching locale.');
     lines.push('export async function loadBucket(bucket, locale) {');
-    lines.push('  const resolvedLocale = resolveBucketLocale(bucket, locale);');
-    lines.push('  const loader = locales[bucket]?.[resolvedLocale];');
-    lines.push('  if (!loader) {');
-    lines.push("    throw new Error(`Missing locale loader for bucket '${bucket}' and locale '${resolvedLocale}'.`);");
-    lines.push('  }');
-    lines.push('  const module = await loader();');
-    lines.push('  return module.default;');
+    lines.push('  const chain = getBucketLocaleChain(bucket, locale).reverse();');
+    lines.push('  const dictionaries = await Promise.all(chain.map(async (candidate) => {');
+    lines.push('    const loader = locales[bucket]?.[candidate];');
+    lines.push('    if (!loader) {');
+    lines.push("      throw new Error(`Missing locale loader for bucket '${bucket}' and locale '${candidate}'.`);");
+    lines.push('    }');
+    lines.push('    return (await loader()).default;');
+    lines.push('  }));');
+    lines.push('  return Object.assign({}, ...dictionaries);');
     lines.push('}', '');
-    pushDocComment(lines, 'Replace {placeholders} in a loaded message template.');
-    lines.push('export function formatMessage(template, params) {');
+    lines.push('const messageFormatCache = new Map();', '');
+    pushDocComment(lines, 'Format an ICU message using locale-aware plural, select, date, and number rules.');
+    lines.push('export function formatMessage(template, params, locale = baseLocale) {');
     lines.push('  if (!params) {');
     lines.push('    return template;');
     lines.push('  }');
-    lines.push('  return template.replace(/\\{(\\w+)\\}/g, (match, key) => (key in params ? String(params[key]) : match));');
+    lines.push("  const normalizedLocale = normalizeLocale(locale).replace(/_/g, '-');");
+    lines.push('  const cacheKey = `${normalizedLocale}\\u0000${template}`;');
+    lines.push('  let formatter = messageFormatCache.get(cacheKey);');
+    lines.push('  if (!formatter) {');
+    lines.push('    formatter = new IntlMessageFormat(template, normalizedLocale);');
+    lines.push('    messageFormatCache.set(cacheKey, formatter);');
+    lines.push('  }');
+    lines.push('  try {');
+    lines.push('    const formatted = formatter.format(params);');
+    lines.push("    return Array.isArray(formatted) ? formatted.join('') : String(formatted);");
+    lines.push('  } catch (error) {');
+    lines.push("    if (typeof error === 'object' && error !== null && error.code === 'MISSING_VALUE') {");
+    lines.push("      return template.replace(/\\{(\\w+)\\}/g, (match, key) => key in params ? String(params[key]) : match);");
+    lines.push('    }');
+    lines.push('    throw error;');
+    lines.push('  }');
     lines.push('}', '');
     pushDocComment(lines, 'Format a message key from an already loaded bucket dictionary.');
     lines.push('export function translateLoaded(bucket, key, dictionary, params) {');
@@ -551,7 +650,8 @@ export function createJsIndexSource(manifest) {
     lines.push("  if (typeof template !== 'string') {");
     lines.push("    throw new Error(`Missing translation for key '${String(key)}' in bucket '${bucket}'.`);");
     lines.push('  }');
-    lines.push('  return formatMessage(template, params);');
+    lines.push("  const locale = typeof dictionary['@@locale'] === 'string' ? dictionary['@@locale'] : baseLocale;");
+    lines.push('  return formatMessage(template, params, locale);');
     lines.push('}', '');
     pushDocComment(lines, 'Create a synchronous bucket facade from an already loaded dictionary.');
     lines.push('export function createLoadedBucketFacade(bucket, dictionary) {');

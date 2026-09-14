@@ -139,10 +139,17 @@ liveTest(
       const appEnPath = path.join(outputDir, 'app', 'app_en.json');
       const todoRuPath = path.join(outputDir, 'todo', 'app_ru.json');
       const indexJsPath = path.join(outputDir, 'index.js');
+      const runtimePath = path.join(outputDir, 'sheety-message-format.js');
+      const runtimeDeclarationPath = path.join(
+        outputDir,
+        'sheety-message-format.d.ts',
+      );
 
       expect(existsSync(appEnPath)).toBe(true);
       expect(existsSync(todoRuPath)).toBe(true);
       expect(existsSync(indexJsPath)).toBe(true);
+      expect(existsSync(runtimePath)).toBe(true);
+      expect(existsSync(runtimeDeclarationPath)).toBe(true);
 
       const appEn = JSON.parse(readFileSync(appEnPath, 'utf8'));
       const todoRu = JSON.parse(readFileSync(todoRuPath, 'utf8'));
@@ -195,10 +202,17 @@ liveTest(
       expect(result.stdout).toMatch(/Deleted stale index file:/);
 
       const indexTsPath = path.join(outputDir, 'index.ts');
+      const runtimePath = path.join(outputDir, 'sheety-message-format.js');
+      const runtimeDeclarationPath = path.join(
+        outputDir,
+        'sheety-message-format.d.ts',
+      );
       expect(existsSync(staleJsonPath)).toBe(false);
       expect(existsSync(staleIndexJsPath)).toBe(false);
       expect(existsSync(staleBucketDir)).toBe(false);
       expect(existsSync(indexTsPath)).toBe(true);
+      expect(existsSync(runtimePath)).toBe(true);
+      expect(existsSync(runtimeDeclarationPath)).toBe(true);
 
       const indexSource = readFileSync(indexTsPath, 'utf8');
 
@@ -265,6 +279,12 @@ liveTest(
       );
       expect(existsSync(path.join(outputDir, 'app', 'app_en.json'))).toBe(true);
       expect(existsSync(path.join(outputDir, 'index.js'))).toBe(true);
+      expect(
+        existsSync(path.join(outputDir, 'sheety-message-format.js')),
+      ).toBe(true);
+      expect(
+        existsSync(path.join(outputDir, 'sheety-message-format.d.ts')),
+      ).toBe(true);
     } finally {
       await rm(tempRoot, { recursive: true, force: true });
       await rm(minifiedCliPath, { force: true });
