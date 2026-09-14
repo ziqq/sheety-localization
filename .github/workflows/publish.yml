@@ -26,15 +26,18 @@ jobs:
     steps:
       - name: Checkout
         id: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install Node.js
         id: node-setup
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20.19.0'
+          node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-          cache: npm
+          package-manager-cache: false
+
+      - name: Install OIDC-compatible npm
+        run: npm install --global npm@11.15.0
 
       - name: Run npm ci
         id: npm-ci
@@ -93,16 +96,14 @@ jobs:
         shell: bash
         run: |
           set +e
-          npm publish --access public --provenance
+          npm publish --access public
           publish_status=$?
           set -e
 
           if [[ ${publish_status} -ne 0 ]]; then
-            echo "::error title=npm publish failed::npm publish exited with code ${publish_status}. If npm reported E404 for an existing package, verify that NODE_AUTH_TOKEN is current and has publish access."
+            echo "::error title=npm OIDC publish failed::npm publish exited with code ${publish_status}. Verify that npm Trusted Publishing matches ziqq/sheety-localization and publish.yml, allows npm publish, and that this job has id-token: write."
             exit "${publish_status}"
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
       - name: Verify npm publication
         shell: bash

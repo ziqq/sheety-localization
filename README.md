@@ -382,8 +382,8 @@ Notes:
 
 ## Release automation
 
-Pushing a `vX.Y.Z` tag starts `.github/workflows/publish.yml`. The workflow requires the tag to match `package.json`, runs tests and the production build, publishes the package with npm provenance, and verifies the exact version in the npm registry. A GitHub Release is created only after that verification succeeds. Re-running the workflow is safe when npm already contains the version: publication is skipped, registry verification still runs, and a missing GitHub Release is created.
+Pushing a `vX.Y.Z` tag starts `.github/workflows/publish.yml`. The workflow requires the tag to match `package.json`, runs tests and the production build, publishes the package through npm Trusted Publishing with automatically generated provenance, and verifies the exact version in the npm registry. A GitHub Release is created only after that verification succeeds. Re-running the workflow is safe when npm already contains the version: publication is skipped, registry verification still runs, and a missing GitHub Release is created.
 
-The repository must provide `NODE_AUTH_TOKEN` with publish access to the npm package. Authentication, network, build, test, and registry failures stop the workflow instead of being treated as an already-published version.
+The npm package must trust the GitHub repository `ziqq/sheety-localization`, workflow filename `publish.yml`, and the direct `npm publish` action. The release job uses a GitHub-hosted runner, Node.js 24, npm 11.15, and the `id-token: write` permission; it does not require a long-lived npm token. Authentication, network, build, test, and registry failures stop the workflow instead of being treated as an already-published version.
 
 <img src="https://codecov.io/gh/ziqq/sheety-localization/graphs/sunburst.svg?token=RYIQF8DZNM" width="375" />
