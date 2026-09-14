@@ -111,7 +111,7 @@ jobs:
           PACKAGE_SPEC: ${{ steps.package.outputs.spec }}
           PACKAGE_VERSION: ${{ steps.package.outputs.version }}
         run: |
-          for attempt in 1 2 3 4 5; do
+          for attempt in $(seq 1 20); do
             set +e
             published_version="$(npm view "${PACKAGE_SPEC}" version 2>&1)"
             registry_status=$?
@@ -124,12 +124,12 @@ jobs:
 
             printf 'Registry verification attempt %s failed: %s\n' \
               "${attempt}" "${published_version}" >&2
-            if [[ ${attempt} -lt 5 ]]; then
-              sleep "$((attempt * 2))"
+            if [[ ${attempt} -lt 20 ]]; then
+              sleep 15
             fi
           done
 
-          echo "::error title=npm publication verification failed::The npm registry did not return ${PACKAGE_SPEC} after five attempts. GitHub Release creation has been stopped."
+          echo "::error title=npm publication verification failed::The npm registry did not return ${PACKAGE_SPEC} within five minutes. GitHub Release creation has been stopped."
           exit 1
 
       - name: Create GitHub Release
