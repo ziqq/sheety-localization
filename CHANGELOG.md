@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+- **ADDED**: The npm publish workflow now creates a GitHub Release only after the package version is confirmed in the npm registry.
+- **FIXED**: npm publication errors are no longer reported as successful runs; tag/package version mismatches and registry verification failures stop the workflow.
+
 ## 0.3.0 - 2026-09-14
 - **ADDED**: Example generated-localization contract tests covering every locale, bucket, key, metadata entry, and generated facade message.
 - **ADDED**: Immutable `v0.2.2` localization baseline and regression checks for all 66 message values, legacy runtime exports, and placeholder formatting.

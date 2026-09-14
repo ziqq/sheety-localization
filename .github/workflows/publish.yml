@@ -6,16 +6,18 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]*'
       - 'v[0-9]+.[0-9]+.[0-9]-*'
-  #release:
-  #  types:
-  #    - created
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   deploy:
     name: 'Publish to npm'
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
     defaults:
       run:
@@ -28,17 +30,77 @@ jobs:
 
       - name: Install Node.js
         id: node-setup
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '20.19.0'
           registry-url: 'https://registry.npmjs.org'
+          cache: npm
 
       - name: Run npm ci
         id: npm-ci
         run: npm ci
 
+      - name: Verify release tag
+        id: package
+        shell: bash
+        run: |
+          package_name="$(node -p "require('./package.json').name")"
+          package_version="$(node -p "require('./package.json').version")"
+          expected_tag="v${package_version}"
+
+          if [[ "${GITHUB_REF_NAME}" != "${expected_tag}" ]]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match package version ${package_version}." >&2
+            exit 1
+          fi
+
+          echo "name=${package_name}" >> "${GITHUB_OUTPUT}"
+          echo "version=${package_version}" >> "${GITHUB_OUTPUT}"
+          echo "spec=${package_name}@${package_version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build release artifacts
+        run: npm run build
+
+      - name: Check npm registry
+        id: registry
+        shell: bash
+        env:
+          PACKAGE_SPEC: ${{ steps.package.outputs.spec }}
+        run: |
+          if npm view "${PACKAGE_SPEC}" version >/dev/null 2>&1; then
+            echo "already_published=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "already_published=false" >> "${GITHUB_OUTPUT}"
+          fi
+
       - name: Publish to npm
         id: publish
-        run: npm publish || echo "Version already published, skipping"
+        if: steps.registry.outputs.already_published != 'true'
+        run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+
+      - name: Verify npm publication
+        env:
+          PACKAGE_SPEC: ${{ steps.package.outputs.spec }}
+          PACKAGE_VERSION: ${{ steps.package.outputs.version }}
+        run: test "$(npm view "${PACKAGE_SPEC}" version)" = "${PACKAGE_VERSION}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "GitHub Release ${RELEASE_TAG} already exists."
+            exit 0
+          fi
+
+          gh release create "${RELEASE_TAG}" \
+            --verify-tag \
+            --latest \
+            --title "${RELEASE_TAG}" \
+            --generate-notes

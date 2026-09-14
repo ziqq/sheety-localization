@@ -380,4 +380,10 @@ Notes:
 - `test:cli-result` and `test:coverage:cli-result` expect a working `example/credentials.json`, Google Sheets access, and network connectivity.
 - Per-suite coverage artifacts and Codecov flags are emitted as `merged`, `source`, `generated-runtime`, and `cli-result`.
 
+## Release automation
+
+Pushing a `vX.Y.Z` tag starts `.github/workflows/publish.yml`. The workflow requires the tag to match `package.json`, runs tests and the production build, publishes the package with npm provenance, and verifies the exact version in the npm registry. A GitHub Release is created only after that verification succeeds. Re-running the workflow is safe when npm already contains the version: publication is skipped, registry verification still runs, and a missing GitHub Release is created.
+
+The repository must provide `NODE_AUTH_TOKEN` with publish access to the npm package. Authentication, network, build, test, and registry failures stop the workflow instead of being treated as an already-published version.
+
 <img src="https://codecov.io/gh/ziqq/sheety-localization/graphs/sunburst.svg?token=RYIQF8DZNM" width="375" />
