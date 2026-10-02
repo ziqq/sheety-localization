@@ -71,6 +71,11 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
+      - name: Configure Google Sheets test credentials
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: node .github/scripts/configure-google-credentials.mjs
+
       - name: Run Tests
         run: npm test
 
@@ -135,6 +140,10 @@ jobs:
           disable_search: true
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+
+      - name: Remove Google Sheets test credentials
+        if: always()
+        run: node -e "require('node:fs').rmSync(require('node:path').join(process.env.RUNNER_TEMP, 'sheety-google-credentials.json'), { force:true })"
 
   notify:
     name: Notify CI result

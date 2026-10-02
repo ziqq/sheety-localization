@@ -8,7 +8,12 @@ import { build as buildWithEsbuild } from 'esbuild';
 
 import { cliPath, importGeneratorModule, repoRoot } from './runtime-target.mjs';
 
-const credentialsPath = path.join(repoRoot, 'example', 'credentials.json');
+const credentialsPath = process.env.SHEETY_GOOGLE_CREDENTIALS_FILE
+  ? path.resolve(process.env.SHEETY_GOOGLE_CREDENTIALS_FILE)
+  : path.join(repoRoot, 'example', 'credentials.json');
+if (process.env.SHEETY_GOOGLE_CREDENTIALS_FILE && !existsSync(credentialsPath)) {
+  throw new Error('SHEETY_GOOGLE_CREDENTIALS_FILE must point to an existing credential file.');
+}
 const spreadsheetId = '1iTmPNGoo41_rk2uLThru1WxbnA-K96_OZmsCdLTcWYw';
 
 jest.setTimeout(120000);

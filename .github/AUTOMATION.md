@@ -48,11 +48,13 @@ See [GitHub token event rules](https://docs.github.com/en/actions/concepts/secur
 ### Live Google Sheets test prerequisite
 
 The CLI result tests require a working service account key and read access to
-the test spreadsheet. The committed example key currently fails authentication
-with `invalid_grant: Invalid JWT Signature`; no Google credential secret is
-configured in this repository. The tests remain enabled and unchanged. A
-replacement service account key is required before the full CI and publication
-pipeline can pass. Notification credentials do not authenticate Google Sheets.
+the test spreadsheet. CI and publication use the `GOOGLE_SERVICE_ACCOUNT_JSON`
+Actions secret, not the committed example credential. The key is materialized
+under `RUNNER_TEMP` with mode `0600`; `SHEETY_GOOGLE_CREDENTIALS_FILE` points tests
+to that file. An always-run cleanup removes the runner copy. No assertion is
+removed and all live CLI tests stay enabled. Missing secrets fail setup explicitly.
+For local tests, set the same file-path variable to a key outside the repository.
+Notification credentials do not authenticate Google Sheets.
 
 `.github/workflows/notifications.yml` calls
 `ziqq/actions/.github/workflows/notify-events.yml@7737ce8c4d87c656b7ccf5f78138d8d7e53a1b62`

@@ -61,7 +61,12 @@ jobs:
           echo "version=${package_version}" >> "${GITHUB_OUTPUT}"
           echo "spec=${package_name}@${package_version}" >> "${GITHUB_OUTPUT}"
 
-      - name: Run tests
+      - name: Configure Google Sheets test credentials
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: node .github/scripts/configure-google-credentials.mjs
+
+      - name: Run live Google Sheets tests
         run: npm test
 
       - name: Build release artifacts
@@ -148,6 +153,10 @@ jobs:
             --latest \
             --title "${RELEASE_TAG}" \
             --generate-notes
+
+      - name: Remove Google Sheets test credentials
+        if: always()
+        run: node -e "require('node:fs').rmSync(require('node:path').join(process.env.RUNNER_TEMP, 'sheety-google-credentials.json'), { force:true })"
 
 
   complete-issues:

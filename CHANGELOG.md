@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- **FIXED**: CI and publication read live Google Sheets test credentials from an Actions secret instead of the committed example key; local tests accept `SHEETY_GOOGLE_CREDENTIALS_FILE` without weakening CLI assertions.
+
 ## 0.3.0 - 2026-09-14
 - **ADDED**: The npm publish workflow now creates a GitHub Release only after the package version is confirmed in the npm registry.
 - **ADDED**: Example generated-localization contract tests covering every locale, bucket, key, metadata entry, and generated facade message.
