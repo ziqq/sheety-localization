@@ -11,18 +11,6 @@ on:
       - 'main'
       - 'feature/**'
       - 'bugfix/**'
-    paths:
-      - '.github/**.yaml'
-      - '.github/**.yml'
-      - 'codecov.yml'
-      - 'jest.config*.mjs'
-      - 'package-lock.json'
-      - 'package.json'
-      - 'scripts/**'
-      - 'tsconfig.json'
-      - 'bin/**.js'
-      - 'src/**'
-      - 'test/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
