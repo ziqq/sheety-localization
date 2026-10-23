@@ -44,8 +44,9 @@ jobs:
     steps:
       - name: Get latest code
         id: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
+          persist-credentials: false
           sparse-checkout: |
             .github
             .gitignore
@@ -63,7 +64,7 @@ jobs:
             README.md
 
       - name: Install Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 20.x
           cache: npm
@@ -83,7 +84,7 @@ jobs:
         run: npm run coverage
 
       - name: Upload Coverage Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: sheety-localization-coverage
           path: |
@@ -98,7 +99,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload Merged Coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           files: ./coverage/lcov.info
           flags: merged
@@ -109,7 +110,7 @@ jobs:
           verbose: true
 
       - name: Upload Source Coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           files: ./coverage/source/lcov.info
           flags: source
@@ -120,7 +121,7 @@ jobs:
           verbose: true
 
       - name: Upload Generated Runtime Coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           files: ./coverage/generated-runtime/lcov.info
           flags: generated-runtime
@@ -131,7 +132,7 @@ jobs:
           verbose: true
 
       - name: Upload CLI Result Coverage to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5
         with:
           files: ./coverage/cli-result/lcov.info
           flags: cli-result
