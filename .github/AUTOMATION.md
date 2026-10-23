@@ -3,6 +3,26 @@
 This repository uses reusable actions pinned to
 `ziqq/actions@ccd1a799683cd461a45d9303ac6fcb2792f8f5d2`.
 
+## Protected npm publication
+
+`.github/workflows/publish.yml` publishes an existing version tag through the
+`release` environment. The tag must match `v<package.json version>`; manual
+dispatches also require a tag. The workflow never creates a tag.
+
+Publication uses npm Trusted Publishing (OIDC), Node.js 24 and the pinned
+`npm@11.15.0`, with `id-token: write` scoped to the deploy job. No npm publishing
+token secret is passed to the job. The job also has `contents: write` to create
+the GitHub Release with `gh release create --verify-tag` after npm publication
+has been verified.
+
+After merging, configure the `release` environment reviewer and tag-only `v*`
+deployment policy. Before publishing, configure the npm trusted publisher for
+user `ziqq`, repository `sheety-localization`, workflow filename `publish.yml`,
+and environment `release`, with direct `npm publish` allowed. Existing trusted
+publisher connections cannot be edited; replace a connection if its fields
+need to change. See [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/).
+Keep repository secrets until a separate cleanup is approved.
+
 ## Semantic labels
 
 `.github/labels.json` is the repository-owned source of truth. Automation uses
