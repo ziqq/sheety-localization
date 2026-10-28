@@ -30,6 +30,21 @@ jobs:
         uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: Validate release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF_TYPE" != tag ]]; then
+            echo "::error::Releases require an existing tag."
+            exit 1
+          fi
+          git fetch --no-tags origin "$GITHUB_REF"
+          tag_commit="$(git rev-parse 'FETCH_HEAD^{commit}')"
+          test "$(git rev-parse HEAD)" = "$tag_commit"
+          git fetch --no-tags origin refs/heads/main
+          git merge-base --is-ancestor "$tag_commit" FETCH_HEAD
 
       - name: Install Node.js
         id: node-setup
